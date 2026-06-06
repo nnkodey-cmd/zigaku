@@ -1,0 +1,5212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>じがくネタジェネレーター</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #fff9e6 0%, #fff0f6 50%, #e8f4ff 100%);
+    font-family: 'Hiragino Maru Gothic ProN', 'BIZ UDGothic', 'Noto Sans JP', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  header {
+    width: 100%;
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    padding: 18px 24px 14px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(255,107,157,0.3);
+  }
+  header .icon { font-size: 28px; margin-bottom: 2px; }
+  header h1 { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  header p { margin-top: 4px; color: rgba(255,255,255,0.9); font-size: 13px; }
+
+  main { width: 100%; max-width: 480px; padding: 20px 16px; }
+
+  .section { margin-bottom: 20px; }
+  .section-label { font-size: 15px; font-weight: 800; color: #555; margin-bottom: 10px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 10px 16px; border-radius: 50px;
+    border: 2px solid #e0e0e0; background: #fff;
+    color: #666; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+    font-family: inherit;
+  }
+  .chip.selected {
+    border-color: #ff6b9d; background: #ff6b9d;
+    color: #fff; box-shadow: 0 4px 12px rgba(255,107,157,0.4);
+  }
+
+  .subject-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .subject-card {
+    padding: 12px 8px; border-radius: 16px;
+    border: 2px solid #eee; background: #fff;
+    color: #555; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-family: inherit;
+  }
+  .subject-card .emoji { font-size: 18px; }
+  .subject-card.selected {
+    border-color: #ff6b9d; background: #fff0f6;
+    color: #ff6b9d; box-shadow: 0 4px 12px rgba(255,107,157,0.2);
+  }
+
+  #generate-btn {
+    width: 100%; padding: 18px; border-radius: 20px; border: none;
+    background: #e0e0e0; color: #aaa;
+    font-size: 20px; font-weight: 900; letter-spacing: 2px;
+    cursor: not-allowed; transition: all 0.2s; margin-bottom: 20px;
+    font-family: inherit;
+  }
+  #generate-btn.ready {
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    color: #fff; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,107,157,0.4);
+  }
+  #generate-btn.ready:active { transform: scale(0.97); }
+
+  #result-area { display: none; }
+  #result-area.visible {
+    display: block;
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card {
+    background: #fff; border-radius: 24px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 32px rgba(255,107,157,0.15);
+    border: 3px solid #ffe0ec;
+  }
+  .result-header { text-align: center; margin-bottom: 16px; }
+  .result-emoji { font-size: 52px; margin-bottom: 8px; }
+  .result-title {
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-size: 20px; font-weight: 900; line-height: 1.3;
+  }
+  .result-desc {
+    background: #fff9e6; border-radius: 14px;
+    padding: 12px 16px; font-size: 14px; color: #555;
+    line-height: 1.7; margin-bottom: 14px;
+  }
+  .steps-label { font-size: 13px; font-weight: 700; color: #ff6b9d; margin-bottom: 8px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;
+  }
+  .step-num {
+    min-width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b9d, #ffa94d);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 14px; color: #444; line-height: 1.6; }
+  .tip-box {
+    background: linear-gradient(90deg, #fff0f6, #fff9e6);
+    border-radius: 14px; padding: 10px 14px;
+    font-size: 13px; color: #888;
+    border-left: 4px solid #ffa94d;
+    margin-top: 14px;
+  }
+  .result-buttons { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-another {
+    flex: 1; padding: 14px; border-radius: 16px;
+    border: 2px solid #ff6b9d; background: #fff;
+    color: #ff6b9d; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-reset {
+    flex: 1; padding: 14px; border-radius: 16px;
+    border: none;
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    color: #fff; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-note {
+    width: 100%; padding: 14px; border-radius: 16px; margin-top: 10px;
+    border: 2px solid #7c9fd4; background: #f0f6ff;
+    color: #3a6bc4; font-size: 15px; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-note:active { transform: scale(0.97); }
+
+  /* ノートモーダル */
+  #note-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  #note-modal.open { display: flex; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .note-wrap {
+    width: 100%; max-width: 420px; max-height: 90vh;
+    overflow-y: auto; position: relative;
+  }
+  .note-book {
+    background: #fffef5;
+    border-radius: 4px 12px 12px 4px;
+    box-shadow: -6px 0 0 #c8a97a, 4px 4px 24px rgba(0,0,0,0.3), inset 0 0 0 1px #e8e0c8;
+    position: relative; overflow: hidden;
+  }
+  /* 左側の製本部分 */
+  .note-book::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 28px;
+    background: linear-gradient(to right, #b8935a, #d4aa72, #c9a060);
+    z-index: 2;
+  }
+  /* 穴 */
+  .note-book::after {
+    content: '';
+    position: absolute; left: 10px; top: 0; bottom: 0; width: 8px;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 44px,
+      #8a6a3a 44px, #8a6a3a 52px,
+      transparent 52px, transparent 96px
+    );
+    z-index: 3;
+  }
+  .note-inner { margin-left: 28px; padding: 0; position: relative; }
+
+  /* 罫線 */
+  .note-lines {
+    position: absolute; inset: 0; left: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 27px,
+      #b8d4f0 27px, #b8d4f0 28px
+    );
+    pointer-events: none; z-index: 0;
+  }
+  /* 縦の赤線（余白線） */
+  .note-margin {
+    position: absolute; left: 40px; top: 0; bottom: 0; width: 2px;
+    background: #f4a0a0; z-index: 1; pointer-events: none;
+  }
+
+  .note-content { position: relative; z-index: 2; padding: 12px 16px 16px 48px; }
+
+  /* 日付行 */
+  .note-date {
+    font-size: 11px; color: #999; text-align: right;
+    line-height: 28px; margin-bottom: 0;
+  }
+  /* 科目ラベル */
+  .note-subject-label {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 10px; border-radius: 20px;
+    margin-bottom: 4px;
+  }
+  /* めあて */
+  .note-aim-box {
+    border: 2px solid #f4a0a0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    background: #fff8f8;
+  }
+  .note-aim-label {
+    font-size: 10px; font-weight: 900; color: #e05050;
+    letter-spacing: 1px; margin-bottom: 2px;
+  }
+  .note-aim-text {
+    font-size: 14px; font-weight: 700; color: #333;
+    line-height: 28px;
+  }
+  /* 本文エリア */
+  .note-body { margin: 4px 0; }
+  .note-section-title {
+    font-size: 12px; font-weight: 900; color: #3a6bc4;
+    line-height: 28px; border-bottom: 1px dashed #b8d4f0;
+    margin-bottom: 0;
+  }
+  .note-body-line {
+    font-size: 13px; color: #333;
+    line-height: 28px; min-height: 28px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .note-body-line .bullet {
+    color: #ff6b9d; font-size: 10px; flex-shrink: 0;
+  }
+  .note-blank-line {
+    height: 28px; border-bottom: none;
+  }
+  .note-dotted-box {
+    border: 2px dashed #c8d8f0;
+    border-radius: 6px; min-height: 56px;
+    margin: 4px 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #aac0e0; font-size: 12px;
+    background: rgba(200,216,240,0.08);
+  }
+  /* まとめ */
+  .note-summary-box {
+    border: 2px solid #7cb87c;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    background: #f5fbf5;
+  }
+  .note-summary-label {
+    font-size: 10px; font-weight: 900; color: #3a8a3a;
+    letter-spacing: 1px; margin-bottom: 2px;
+  }
+  .note-summary-text {
+    font-size: 13px; color: #333; line-height: 28px;
+  }
+  /* 閉じるボタン */
+  .note-close-bar {
+    padding: 12px 16px; text-align: center;
+  }
+  .btn-close-note {
+    padding: 12px 32px; border-radius: 50px; border: none;
+    background: linear-gradient(90deg, #ff6b9d, #ffa94d);
+    color: #fff; font-size: 15px; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* 表スペース */
+  .note-table-space {
+    width: 100%; border-collapse: collapse; margin: 4px 0;
+    font-size: 12px;
+  }
+  .note-table-space th {
+    background: #e8f0fb; border: 1.5px solid #b8d0f0;
+    padding: 4px 6px; text-align: center; font-weight: 700; color: #3a5a9a;
+    line-height: 22px;
+  }
+  .note-table-space td {
+    border: 1.5px solid #b8d0f0; padding: 0;
+    height: 28px; min-width: 40px;
+  }
+  /* グラフ枠 */
+  .note-graph-box {
+    border: 1.5px solid #b8d0f0; border-radius: 6px;
+    margin: 4px 0; padding: 4px 8px;
+    background: #f8fbff;
+  }
+  .note-graph-title {
+    font-size: 11px; color: #3a6bc4; font-weight: 700; margin-bottom: 2px;
+  }
+  .note-graph-area {
+    position: relative; height: 80px;
+    border-left: 2px solid #7090c0; border-bottom: 2px solid #7090c0;
+    margin: 0 4px;
+    background: repeating-linear-gradient(
+      to right, transparent 0, transparent 24px, #ddeeff 24px, #ddeeff 25px
+    ),
+    repeating-linear-gradient(
+      to bottom, transparent 0, transparent 19px, #ddeeff 19px, #ddeeff 20px
+    );
+  }
+  .note-graph-hint { font-size: 10px; color: #90a8d0; text-align: right; margin-top: 2px; }
+  /* スケッチ枠 */
+  .note-sketch-box {
+    border: 2px dashed #c8d8a0; border-radius: 6px;
+    margin: 4px 0; min-height: 72px;
+    background: #fafff5;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px;
+  }
+  .note-sketch-icon { font-size: 22px; opacity: 0.5; }
+  .note-sketch-hint { font-size: 11px; color: #8aaa60; }
+  /* 観察記録枠 */
+  .note-observe-box {
+    border: 1.5px solid #d0b8f0; border-radius: 6px;
+    margin: 4px 0; padding: 4px 8px;
+    background: #fdf8ff;
+  }
+  .note-observe-row {
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .note-observe-sketch {
+    border: 1.5px dashed #c0a0e8; border-radius: 4px;
+    min-width: 72px; height: 72px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #b090d8; flex-shrink: 0;
+    background: #fdf5ff;
+  }
+  .note-observe-lines { flex: 1; }
+  .note-observe-line {
+    border-bottom: 1px solid #d0b8f0; height: 28px; margin-bottom: 0;
+  }
+  /* インタビュー・会話枠 */
+  .note-interview-box {
+    border: 1.5px solid #f0c890; border-radius: 6px;
+    margin: 4px 0; padding: 6px 8px;
+    background: #fffbf0;
+  }
+  .note-interview-q {
+    font-size: 12px; font-weight: 700; color: #c07020; margin-bottom: 2px;
+  }
+  .note-interview-a {
+    border-bottom: 1px solid #f0c890; height: 28px; margin-bottom: 6px;
+  }
+  /* 比較表 */
+  .note-compare-box {
+    margin: 4px 0;
+  }
+  /* 作文・文章枠 */
+  .note-writing-lines {
+    margin: 4px 0;
+  }
+  .note-writing-line {
+    border-bottom: 1px solid #b8d4f0; height: 28px;
+  }
+  /* タイムライン枠 */
+  .note-timeline {
+    margin: 4px 0; padding-left: 8px;
+    border-left: 3px solid #ffa94d;
+  }
+  .note-tl-item {
+    position: relative; padding: 2px 0 2px 16px; min-height: 28px;
+    font-size: 12px; color: #555;
+  }
+  .note-tl-item::before {
+    content: ''; position: absolute; left: -7px; top: 10px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #ffa94d; border: 2px solid #fff;
+    box-shadow: 0 0 0 1.5px #ffa94d;
+  }
+  .note-tl-dot-line {
+    border-bottom: 1px dashed #f0c890; height: 24px; margin-left: 16px;
+  }
+  /* チェックリスト */
+  .note-checklist { margin: 4px 0; }
+  .note-check-item {
+    display: flex; align-items: center; gap: 8px;
+    height: 28px; font-size: 13px; color: #444;
+  }
+  .note-checkbox {
+    width: 16px; height: 16px; border: 2px solid #aaa;
+    border-radius: 3px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ページ番号 */
+  .note-page-num {
+    text-align: right; font-size: 10px; color: #bbb;
+    line-height: 28px; padding-right: 4px;
+  }
+
+  /* ===== ルーレット ===== */
+  #roulette-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 900;
+    align-items: center; justify-content: center;
+  }
+  #roulette-overlay.active { display: flex; }
+  .roulette-box {
+    background: #fff; border-radius: 24px;
+    padding: 32px 28px; text-align: center;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+    min-width: 260px;
+  }
+  .roulette-emoji {
+    font-size: 64px;
+    animation: spin 0.12s linear infinite;
+    display: block; margin-bottom: 12px;
+  }
+  @keyframes spin {
+    0%   { transform: rotate(0deg) scale(1); }
+    50%  { transform: rotate(180deg) scale(1.15); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  .roulette-text {
+    font-size: 18px; font-weight: 900; color: #ff6b9d;
+    letter-spacing: 2px;
+    animation: blink 0.4s ease infinite alternate;
+  }
+  @keyframes blink { from { opacity:1; } to { opacity:0.4; } }
+
+  /* ===== 難易度バッジ ===== */
+  .difficulty-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .diff-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+  }
+  .diff-1 { background: #e8f8e8; color: #3a8a3a; border: 1.5px solid #90d090; }
+  .diff-2 { background: #fff8e0; color: #b07800; border: 1.5px solid #f0c840; }
+  .diff-3 { background: #ffeaea; color: #c03030; border: 1.5px solid #f09090; }
+  .time-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    background: #f0f4ff; color: #3a5ac0; border: 1.5px solid #a0b4f0;
+  }
+
+  /* ===== お気に入り ===== */
+  .fav-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 26px; padding: 4px; line-height: 1;
+    transition: transform 0.2s;
+  }
+  .fav-btn:active { transform: scale(1.3); }
+  #fav-section {
+    margin-top: 24px; display: none;
+  }
+  #fav-section.has-items { display: block; }
+  .fav-section-title {
+    font-size: 15px; font-weight: 800; color: #555;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .fav-list { display: flex; flex-direction: column; gap: 8px; }
+  .fav-item {
+    background: #fff; border-radius: 14px;
+    border: 2px solid #ffe0ec;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  .fav-item:active { box-shadow: 0 4px 12px rgba(255,107,157,0.3); }
+  .fav-item-emoji { font-size: 22px; flex-shrink: 0; }
+  .fav-item-body { flex: 1; min-width: 0; }
+  .fav-item-title {
+    font-size: 13px; font-weight: 700; color: #333;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .fav-item-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .fav-item-del {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: #ccc; padding: 4px; flex-shrink: 0;
+  }
+  .fav-empty {
+    text-align: center; color: #bbb; font-size: 13px; padding: 12px;
+  }
+
+  /* ===== スタンプ ===== */
+  #stamp-overlay {
+    display: none; position: fixed; inset: 0;
+    z-index: 950; pointer-events: none;
+    align-items: center; justify-content: center;
+  }
+  #stamp-overlay.active { display: flex; }
+  .stamp-img {
+    font-size: 100px;
+    animation: stampIn 0.5s cubic-bezier(0.17,0.89,0.32,1.28) forwards;
+    opacity: 0;
+  }
+  @keyframes stampIn {
+    0%   { opacity:0; transform: scale(3) rotate(-15deg); }
+    60%  { opacity:1; transform: scale(0.9) rotate(4deg); }
+    80%  { transform: scale(1.05) rotate(-2deg); }
+    100% { opacity:1; transform: scale(1) rotate(0deg); }
+  }
+  .stamp-out { animation: stampOut 0.4s ease forwards; }
+  @keyframes stampOut {
+    0%   { opacity:1; transform: scale(1); }
+    100% { opacity:0; transform: scale(0.6) translateY(-20px); }
+  }
+  .btn-stamp {
+    width: 100%; padding: 14px; border-radius: 16px; margin-top: 10px;
+    border: 2px solid #f0c000; background: linear-gradient(90deg,#fff7d0,#fff0a0);
+    color: #b08000; font-size: 16px; font-weight: 900;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-stamp.stamped {
+    border-color: #ffa94d; background: linear-gradient(90deg,#ffe0a0,#ffcf70);
+    color: #7a5000;
+  }
+  .stamp-count-badge {
+    background: #ff6b9d; color: #fff;
+    font-size: 11px; font-weight: 900;
+    padding: 2px 7px; border-radius: 20px; margin-left: 4px;
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="icon">📚✨</div>
+  <h1>じがくネタジェネレーター</h1>
+  <p>きょうの自主学習、なにしよう？</p>
+</header>
+
+<main>
+  <div class="section">
+    <div class="section-label">🎒 ① 何年生？</div>
+    <div class="chips" id="grade-chips"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">🖊️ ② きょうかは？</div>
+    <div class="subject-grid" id="subject-grid"></div>
+  </div>
+
+  <button id="generate-btn" disabled>✨ ネタをだして！</button>
+
+  <div id="result-area">
+    <div class="result-card">
+      <div class="result-header">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+          <button class="fav-btn" id="fav-btn" onclick="toggleFav()" title="お気に入り">🤍</button>
+        </div>
+        <div class="result-emoji" id="r-emoji"></div>
+        <div class="result-title" id="r-title"></div>
+      </div>
+      <div class="difficulty-row" id="r-difficulty"></div>
+      <div class="result-desc" id="r-desc"></div>
+      <div class="steps-label">📋 やりかた</div>
+      <div id="r-steps"></div>
+      <div class="tip-box" id="r-tip"></div>
+      <div class="result-buttons">
+        <button class="btn-another" onclick="generate()">🔄 べつのネタ</button>
+        <button class="btn-reset" onclick="resetAll()">🏠 はじめから</button>
+      </div>
+      <button class="btn-stamp" id="stamp-btn" onclick="pressStamp()">⭐ できた！スタンプをおす</button>
+      <button class="btn-note" onclick="showNote()">📓 ノートの書き方を見る</button>
+    </div>
+  </div>
+
+  <!-- ノートモーダル -->
+  <div id="note-modal" onclick="closeNoteModal(event)">
+    <div class="note-wrap">
+      <div class="note-book">
+        <div class="note-inner">
+          <div class="note-lines"></div>
+          <div class="note-margin"></div>
+          <div class="note-content" id="note-content"></div>
+        </div>
+      </div>
+      <div class="note-close-bar">
+        <button class="btn-close-note" onclick="document.getElementById('note-modal').classList.remove('open')">✕ とじる</button>
+      </div>
+    </div>
+  </div>
+  <!-- お気に入りリスト -->
+  <div id="fav-section">
+    <div class="fav-section-title">⭐ お気に入り <span id="fav-count-label"></span></div>
+    <div class="fav-list" id="fav-list"></div>
+  </div>
+
+  <!-- ルーレットオーバーレイ -->
+  <div id="roulette-overlay">
+    <div class="roulette-box">
+      <span class="roulette-emoji" id="roulette-emoji">🎲</span>
+      <div class="roulette-text">ネタをさがしちゅう…</div>
+    </div>
+  </div>
+
+  <!-- スタンプオーバーレイ -->
+  <div id="stamp-overlay">
+    <div class="stamp-img" id="stamp-img">⭐</div>
+  </div>
+</main>
+
+<script>
+// ===== ネタDB =====
+// 構造: DB[教科ID][学年グループ] = [ {title, emoji, description, steps:[], tip}, ... ]
+// 学年グループ: "低"=1-2年, "中"=3-4年, "高"=5-6年
+const DB = {
+  "kokugo": {
+    "低": [
+      {
+        "emoji": "📖",
+        "title": "すきな本のあらすじを書こう",
+        "description": "よんだ本のはじまり・なか・おわりをじぶんのことばで書いてみよう。",
+        "steps": [
+          "本をえらんでもういちどよむ",
+          "はじまり・なか・おわりにわけてメモ",
+          "ノートにきれいに書く"
+        ],
+        "tip": "え（イラスト）もかくと楽しいよ！"
+      },
+      {
+        "emoji": "✍️",
+        "title": "今日あったことを日記に書こう",
+        "description": "今日いちばんたのしかったことを日記に書いてみよう。",
+        "steps": [
+          "今日のことを3つ思い出す",
+          "いちばんたのしかったことをえらぶ",
+          "くわしく文を書く"
+        ],
+        "tip": "「いつ・どこで・だれと・どうした」を入れると上手になるよ！"
+      },
+      {
+        "emoji": "🔤",
+        "title": "ことばあつめをしよう",
+        "description": "テーマをきめて、そのことばをたくさんあつめよう。",
+        "steps": [
+          "テーマをきめる（たべもの・どうぶつなど）",
+          "5分でできるだけたくさん書く",
+          "かぞえてノートにまとめる"
+        ],
+        "tip": "家の中を見回すと新しいことばが見つかるよ！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "音読タイムにちょうせんしよう",
+        "description": "教科書の好きなページを3回音読して、タイムをはかろう。",
+        "steps": [
+          "音読するページをえらぶ",
+          "タイマーをセットして1回よむ",
+          "3回くりかえしてタイムをくらべる"
+        ],
+        "tip": "口をおおきくあけるときれいによめるよ！"
+      },
+      {
+        "emoji": "🃏",
+        "title": "ひらがなカタカナカードをつくろう",
+        "description": "ひらがなとカタカナをカードに書いてあいうえお順にならべよう。",
+        "steps": [
+          "小さいカードを46まい用意する",
+          "ひらがなを1まい1文字で書く",
+          "あいうえお順にならべてたしかめる"
+        ],
+        "tip": "カタカナバージョンも作ると2倍つよくなるよ！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "色のことばをあつめよう",
+        "description": "「あか」「あお」など色を表すことばをできるだけたくさん書こう。",
+        "steps": [
+          "知っている色のことばを全部書く",
+          "辞書や本でさらにさがす",
+          "ノートに色をぬりながらまとめる"
+        ],
+        "tip": "「もも色」「空色」など日本語らしい色の名前をさがしてみよう！"
+      },
+      {
+        "emoji": "📝",
+        "title": "かたかなことばをさがそう",
+        "description": "カタカナで書くことばを家の中や教科書からさがしてまとめよう。",
+        "steps": [
+          "家の中（食品・おもちゃ）をさがす",
+          "教科書からもさがす",
+          "ノートにリストにする"
+        ],
+        "tip": "外来語（外国から来たことば）が多いことに気づくよ！"
+      },
+      {
+        "emoji": "🧩",
+        "title": "反対ことばをまとめよう",
+        "description": "「大きい↔小さい」など反対の意味のことばをペアでまとめよう。",
+        "steps": [
+          "知っている反対ことばを5ペア書く",
+          "辞書でさらに5ペアさがす",
+          "絵もかえてわかりやすくする"
+        ],
+        "tip": "「長い・短い」「重い・軽い」など体で感じるものからさがしてみよう！"
+      },
+      {
+        "emoji": "🗣️",
+        "title": "すきなものを作文にしよう",
+        "description": "いちばんすきなたべもの・あそびなどを理由つきで作文に書こう。",
+        "steps": [
+          "すきなものを1つえらぶ",
+          "好きな理由を3つ考える",
+          "2〜3文の作文に書く"
+        ],
+        "tip": "「なぜなら〜だからです」という形を使うと上手に書けるよ！"
+      },
+      {
+        "emoji": "✉️",
+        "title": "家族への手紙を書こう",
+        "description": "家族の誰かに感謝やすきなところを伝えるお手紙を書こう。",
+        "steps": [
+          "手紙を書く相手を1人きめる",
+          "伝えたいことを3つ考える",
+          "ていねいに手紙を書く"
+        ],
+        "tip": "書いた手紙をそのまま渡してみよう！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "同じ読み方の漢字をさがそう",
+        "description": "「はな（花・鼻）」など同じ読み方でちがう漢字をさがしてまとめよう。",
+        "steps": [
+          "知っている漢字から同音のものをさがす",
+          "辞書で確認する",
+          "文を作って使い方の違いを確かめる"
+        ],
+        "tip": "「き」「かん」など読み方で調べると多く見つかるよ！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "季節のことばをあつめよう",
+        "description": "今の季節に関係することばを20個以上あつめてノートにまとめよう。",
+        "steps": [
+          "今の季節をかくにんする",
+          "その季節のことばをできるだけ書く",
+          "絵もそえてまとめる"
+        ],
+        "tip": "天気・食べもの・行事・植物など種類わけするともっとたくさん出てくるよ！"
+      },
+      {
+        "emoji": "📚",
+        "title": "好きなキャラクターを紹介しよう",
+        "description": "本やアニメのすきなキャラクターを紹介する文を書いてみよう。",
+        "steps": [
+          "キャラクターを1人えらぶ",
+          "名前・特ちょう・好きな理由を書く",
+          "2〜3文の紹介文にまとめる"
+        ],
+        "tip": "読んだ人が想像できるように書こう！"
+      },
+      {
+        "emoji": "🐾",
+        "title": "動物の鳴き声ことばをまとめよう",
+        "description": "犬は「ワンワン」など動物の鳴き声を表すことばをあつめよう。",
+        "steps": [
+          "知っている動物の鳴き声を書く",
+          "英語でも調べてみる",
+          "ノートに動物の絵と一緒にまとめる"
+        ],
+        "tip": "日本語と英語で鳴き声がちがう動物がいて面白いよ！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "ものがたりの続きを考えよう",
+        "description": "好きな本や教科書のお話の続きを自分で考えて書こう。",
+        "steps": [
+          "続きを書くお話をえらぶ",
+          "どんな続きにするか考える",
+          "3〜5文で書く"
+        ],
+        "tip": "登場人物の気持ちを想像しながら書くと面白くなるよ！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "📰",
+        "title": "新聞記事を要約しよう",
+        "description": "子ども新聞や教科書の文章を読んで大事なことだけ短くまとめよう。",
+        "steps": [
+          "記事や文章をえらぶ",
+          "大事なことにしるしをつける",
+          "100字以内でまとめる"
+        ],
+        "tip": "「だれが・いつ・どこで・何を・どうした」の5つを入れよう！"
+      },
+      {
+        "emoji": "🗣️",
+        "title": "ことわざ・慣用句をまとめよう",
+        "description": "ことわざや慣用句を3つえらんで意味と使い方を調べよう。",
+        "steps": [
+          "辞典からことわざを3つえらぶ",
+          "意味を自分のことばで書く",
+          "例文を1つずつ作る"
+        ],
+        "tip": "家の人に出題してみよう！"
+      },
+      {
+        "emoji": "📝",
+        "title": "読書感想文の下書きをしよう",
+        "description": "最近読んだ本のどこが心に残ったか理由もつけて書こう。",
+        "steps": [
+          "心に残った場面を1つえらぶ",
+          "なぜ残ったか理由を考える",
+          "200字くらいで書く"
+        ],
+        "tip": "「もし自分だったら…」と考えると書きやすいよ！"
+      },
+      {
+        "emoji": "🔠",
+        "title": "同訓異字・同音異義語をまとめよう",
+        "description": "「橋と箸」など同じ読みでちがう漢字をまとめよう。",
+        "steps": [
+          "教科書や辞書で調べる",
+          "5ペア以上まとめる",
+          "それぞれ例文を作る"
+        ],
+        "tip": "文の意味から正しい漢字を選ぶ練習にもなるよ！"
+      },
+      {
+        "emoji": "✍️",
+        "title": "詩を一篇つくろう",
+        "description": "身近なものや感じたことを題材に短い詩を書いてみよう。",
+        "steps": [
+          "テーマをきめる",
+          "言葉をノートに書き出す",
+          "5〜8行の詩に書く"
+        ],
+        "tip": "音のひびきや繰り返しを使うと詩らしくなるよ！"
+      },
+      {
+        "emoji": "📖",
+        "title": "登場人物を分析しよう",
+        "description": "読んだ本の主人公の性格・気持ちの変化を場面ごとにまとめよう。",
+        "steps": [
+          "本の主人公を1人えらぶ",
+          "はじめ・なか・おわりの気持ちを書く",
+          "なぜ変わったか理由を考える"
+        ],
+        "tip": "セリフや行動から気持ちを読み取ろう！"
+      },
+      {
+        "emoji": "🗺️",
+        "title": "物語の舞台を地図にしよう",
+        "description": "好きな本の舞台になっている場所を想像しながら地図を書こう。",
+        "steps": [
+          "舞台になっている場所を本で確認する",
+          "登場する場所を書き出す",
+          "地図のように絵にまとめる"
+        ],
+        "tip": "場面の順番で地図をたどると物語が整理されるよ！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "スピーチ原稿を書いてみよう",
+        "description": "「好きな場所」などのテーマで1〜2分のスピーチ原稿を書こう。",
+        "steps": [
+          "テーマをきめる",
+          "伝えたいことを3つ箇条書きにする",
+          "つなぎことばを使って文にする"
+        ],
+        "tip": "「まず・次に・最後に」を使うとわかりやすくなるよ！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "接続語を使った文を作ろう",
+        "description": "「しかし・だから・つまり」などの接続語を使った文を作ろう。",
+        "steps": [
+          "接続語を5種類えらぶ",
+          "それぞれ使った文を1文作る",
+          "文をつなげて短い文章にする"
+        ],
+        "tip": "接続語を使うと文のつながりがわかりやすくなるよ！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "季節の俳句・短歌を鑑賞しよう",
+        "description": "季節の俳句や短歌を1つえらんで情景と気持ちを文で説明しよう。",
+        "steps": [
+          "俳句・短歌を1つえらぶ",
+          "どんな場面か想像して絵をかく",
+          "作者の気持ちを文で書く"
+        ],
+        "tip": "季語（季節を表すことば）を見つけてみよう！"
+      },
+      {
+        "emoji": "📗",
+        "title": "辞書引きレースをしよう",
+        "description": "辞書で10語を調べて意味を自分の言葉でノートに書こう。",
+        "steps": [
+          "調べる語を10個書き出す",
+          "辞書で引いてタイムを計る",
+          "意味を自分のことばで書き直す"
+        ],
+        "tip": "引いたページに付箋をはるとどこまで調べたかわかるよ！"
+      },
+      {
+        "emoji": "📜",
+        "title": "昔話の構造を分析しよう",
+        "description": "「桃太郎」などの昔話の「登場人物・問題・解決」を表にまとめよう。",
+        "steps": [
+          "昔話を1つえらぶ",
+          "登場人物・起きた問題・解決を書く",
+          "現代の話との違いを考える"
+        ],
+        "tip": "2つの昔話を比べると面白いよ！"
+      },
+      {
+        "emoji": "🗒️",
+        "title": "メモの取り方を練習しよう",
+        "description": "家族の話やニュースを聞きながら大事なことだけメモする練習をしよう。",
+        "steps": [
+          "メモを取る場面をきめる",
+          "短いことばでポイントだけ書く",
+          "後でメモを見て話を再現できるか確かめる"
+        ],
+        "tip": "全部書こうとしないで「キーワード」だけ書くのがコツ！"
+      },
+      {
+        "emoji": "🖊️",
+        "title": "手紙の書き方をマスターしよう",
+        "description": "時候のあいさつを使った正式な手紙を1通書いてみよう。",
+        "steps": [
+          "手紙の構成（頭語・本文・結語）を調べる",
+          "時候のあいさつを1つえらぶ",
+          "先生や親せきへの手紙を書く"
+        ],
+        "tip": "「拝啓」「敬具」などの言葉を使うと正式な手紙になるよ！"
+      },
+      {
+        "emoji": "🌙",
+        "title": "オノマトペを集めよう",
+        "description": "「キラキラ」「ドキドキ」など感覚を表すオノマトペを20個あつめよう。",
+        "steps": [
+          "知っているオノマトペを全部書く",
+          "音・様子・気持ちに分類する",
+          "それぞれ例文を作る"
+        ],
+        "tip": "マンガのセリフにもたくさんあるよ！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "📜",
+        "title": "四字熟語カードを作ろう",
+        "description": "四字熟語を5つ調べて意味・由来・例文をカードにまとめよう。",
+        "steps": [
+          "辞典で四字熟語を5つえらぶ",
+          "意味・由来をまとめる",
+          "例文を自分で作る"
+        ],
+        "tip": "似た意味の四字熟語を比べるとさらに深まるよ！"
+      },
+      {
+        "emoji": "🖊️",
+        "title": "新聞コラムを書いてみよう",
+        "description": "気になるニュースや身近な出来事について自分の意見を300字で書こう。",
+        "steps": [
+          "テーマをきめる",
+          "自分の意見と理由を考える",
+          "300字で書いてみる"
+        ],
+        "tip": "反対意見も考えると説得力が上がるよ！"
+      },
+      {
+        "emoji": "📚",
+        "title": "作者について調べよう",
+        "description": "好きな本の作者を調べて他の作品や生い立ちをノートにまとめよう。",
+        "steps": [
+          "調べる作者をきめる",
+          "生い立ちや代表作を調べる",
+          "年表風にまとめる"
+        ],
+        "tip": "図書館の本や学校のPCを活用しよう！"
+      },
+      {
+        "emoji": "🔤",
+        "title": "語源・由来を調べよう",
+        "description": "身近な言葉の語源や由来を5つ調べてノートにまとめよう。",
+        "steps": [
+          "気になる言葉を5つ書き出す",
+          "辞書や語源辞典で調べる",
+          "由来を自分のことばで書く"
+        ],
+        "tip": "「台風」「台所」など身近な言葉に面白い由来があるよ！"
+      },
+      {
+        "emoji": "📰",
+        "title": "社説・意見文を分析しよう",
+        "description": "新聞の社説を読んで筆者の主張・理由・根拠を整理しよう。",
+        "steps": [
+          "社説を1本読む",
+          "主張・理由・根拠を書き出す",
+          "自分の意見も書く"
+        ],
+        "tip": "賛成・反対どちらの立場でも意見を書けると力がつくよ！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "短編小説を書いてみよう",
+        "description": "400字以上の短編小説を書いてみよう。起承転結を意識して。",
+        "steps": [
+          "テーマと登場人物をきめる",
+          "起承転結でストーリーをメモ",
+          "丁寧に文章にする"
+        ],
+        "tip": "ラストから逆算して書くと読後感が強い作品になるよ！"
+      },
+      {
+        "emoji": "📖",
+        "title": "本の帯を書いてみよう",
+        "description": "読んだ本の「帯（おびこうこく）」のコピーを考えて書いてみよう。",
+        "steps": [
+          "本を1冊えらぶ",
+          "その本の魅力を3つ書き出す",
+          "読みたくなるキャッチコピーを考える"
+        ],
+        "tip": "実際の本の帯と比べると面白いよ！"
+      },
+      {
+        "emoji": "🗣️",
+        "title": "ディベートの準備をしよう",
+        "description": "テーマを決め賛成・反対両方の立場で意見と根拠を書こう。",
+        "steps": [
+          "ディベートのテーマをきめる",
+          "賛成の立場で意見と根拠を3つ書く",
+          "反対の立場でも同じように書く"
+        ],
+        "tip": "どちらの立場でも論じられると本物の論理力がつくよ！"
+      },
+      {
+        "emoji": "🌐",
+        "title": "外来語の変化を調べよう",
+        "description": "英語から来た外来語が日本語でどう変化したか10語調べよう。",
+        "steps": [
+          "外来語を10個書き出す",
+          "元の英語と発音の違いを調べる",
+          "なぜ変化したか考える"
+        ],
+        "tip": "「テレビ(television)」など音の変化に注目しよう！"
+      },
+      {
+        "emoji": "✏️",
+        "title": "文章の表現技法を調べよう",
+        "description": "比喩・擬人化・反復など表現技法を5種類調べて例文を作ろう。",
+        "steps": [
+          "表現技法を5種類調べる",
+          "教科書から例を見つける",
+          "自分で例文を1つずつ作る"
+        ],
+        "tip": "詩や小説に表現技法は多く使われているよ！"
+      },
+      {
+        "emoji": "📝",
+        "title": "意見文を書く練習をしよう",
+        "description": "「制服は必要か」などのテーマで400字の意見文を書こう。",
+        "steps": [
+          "テーマをきめる",
+          "主張・理由・まとめの構成を考える",
+          "400字で書く"
+        ],
+        "tip": "「私は〜と考える。なぜなら〜だからだ。」の型を使おう！"
+      },
+      {
+        "emoji": "🗒️",
+        "title": "ビブリオバトルをしよう",
+        "description": "おすすめ本の紹介カードを作り2分スピーチの原稿を書こう。",
+        "steps": [
+          "紹介する本をえらぶ",
+          "あらすじ・見どころ・おすすめ理由を書く",
+          "2分で話せる原稿にする"
+        ],
+        "tip": "「読みたい！」と思ってもらえるよう一番の魅力をアピールしよう！"
+      },
+      {
+        "emoji": "🔬",
+        "title": "文章の構成を分析しよう",
+        "description": "説明文を読んで「序論・本論・結論」に分け要点をまとめよう。",
+        "steps": [
+          "教科書の説明文をえらぶ",
+          "序論・本論・結論を色分けする",
+          "各部分の要点を1文でまとめる"
+        ],
+        "tip": "この構造を使って自分でも説明文を書いてみよう！"
+      },
+      {
+        "emoji": "📅",
+        "title": "俳句を5句作ろう",
+        "description": "季語を使った俳句を5句作って短冊に清書しよう。",
+        "steps": [
+          "季語を5つえらぶ",
+          "それぞれ5・7・5の俳句を作る",
+          "短冊に丁寧に書く"
+        ],
+        "tip": "「や」「かな」「けり」などの切れ字を使うと俳句らしくなるよ！"
+      },
+      {
+        "emoji": "🌏",
+        "title": "方言を調べてまとめよう",
+        "description": "自分の地域や気になる地域の方言を10語調べてまとめよう。",
+        "steps": [
+          "調べる地域をえらぶ",
+          "方言を10語調べる",
+          "標準語と意味の違いをまとめる"
+        ],
+        "tip": "家族や祖父母に聞くのが一番のリサーチ方法！"
+      }
+    ]
+  },
+  "sansu": {
+    "低": [
+      {
+        "emoji": "🔢",
+        "title": "かけ算九九をリズムで練習しよう",
+        "description": "苦手な段をえらんでリズムに合わせてとなえながら練習しよう。",
+        "steps": [
+          "苦手な段を1つえらぶ",
+          "手をたたきながらリズムよく言う",
+          "逆から（9×→1×）も言えるか試す"
+        ],
+        "tip": "家の人に聞いてもらうと本番に強くなるよ！"
+      },
+      {
+        "emoji": "📏",
+        "title": "家の中のものをはかろう",
+        "description": "定規やものさしを使って家の中のものの長さをはかってまとめよう。",
+        "steps": [
+          "はかるものを5つきめる",
+          "定規でやさしくはかる",
+          "ノートに絵と数字でまとめる"
+        ],
+        "tip": "cm と mm の両方で書いてみよう！"
+      },
+      {
+        "emoji": "🧮",
+        "title": "たし算・ひき算れんしゅう",
+        "description": "計算カードを使って1分間でどれだけ解けるか挑戦しよう。",
+        "steps": [
+          "計算問題を10問作る",
+          "タイマーを1分にセット",
+          "正確さとスピードを両方はかる"
+        ],
+        "tip": "まちがえた問題だけもう一度やると効率UP！"
+      },
+      {
+        "emoji": "🍎",
+        "title": "数の合成・分解をしよう",
+        "description": "10になる数の組み合わせを全部見つけてノートにまとめよう。",
+        "steps": [
+          "1と9、2と8…と書いていく",
+          "10以外の数でもやってみる",
+          "絵で表してわかりやすくする"
+        ],
+        "tip": "おはじきや豆を使って実際に確かめてみよう！"
+      },
+      {
+        "emoji": "⏰",
+        "title": "時計の読み方を練習しよう",
+        "description": "時計の絵を書いていろいろな時刻を書き込んで練習しよう。",
+        "steps": [
+          "丸を書いて時計を作る",
+          "数字を書いて針を書き込む",
+          "5分刻みで色々な時刻を書く"
+        ],
+        "tip": "生活の中の「今何時？」を意識してみよう！"
+      },
+      {
+        "emoji": "💰",
+        "title": "お金の計算をしよう",
+        "description": "おかいものの計算を作っておつりのけいさんをれんしゅうしよう。",
+        "steps": [
+          "かいものの設定を考える（100円のものを買う）",
+          "代金を出す",
+          "おつりを計算する"
+        ],
+        "tip": "実際のコインや紙幣を使うとよりわかりやすいよ！"
+      },
+      {
+        "emoji": "📊",
+        "title": "好きなものをグラフにしよう",
+        "description": "家族の好きな食べものを聞いて棒グラフや絵グラフを書こう。",
+        "steps": [
+          "家族全員に好きな食べものを聞く",
+          "結果を表にまとめる",
+          "棒グラフや絵グラフを書く"
+        ],
+        "tip": "タイトルと目盛りを忘れずに書こう！"
+      },
+      {
+        "emoji": "🔺",
+        "title": "かたちを見つけて分類しよう",
+        "description": "家の中から三角・四角・丸の形を見つけて種類ごとにまとめよう。",
+        "steps": [
+          "三角・四角・丸のものをさがす",
+          "それぞれ3つ以上見つける",
+          "ノートに絵でまとめる"
+        ],
+        "tip": "窓・時計・タイルなど意外な場所にもあるよ！"
+      },
+      {
+        "emoji": "🎲",
+        "title": "サイコロでたし算ゲームをしよう",
+        "description": "2つのサイコロをふって出た目をたし算。10問やって全部正解できるか！",
+        "steps": [
+          "サイコロ2つを用意する",
+          "10回ふって出た目を足す",
+          "答えを書いて確認する"
+        ],
+        "tip": "だんだん早くできるよう練習しよう！"
+      },
+      {
+        "emoji": "📐",
+        "title": "ます目を使って絵をかこう",
+        "description": "方眼紙や1cm方眼のノートにます目を数えながら絵を書こう。",
+        "steps": [
+          "簡単な絵のテーマをきめる",
+          "ます目を数えながら線を書く",
+          "色をぬって完成させる"
+        ],
+        "tip": "左右対称の絵に挑戦してみよう！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "100までの数を並べよう",
+        "description": "1〜100の数を書いた表を作って2・5・10の倍数に色をぬろう。",
+        "steps": [
+          "1〜100の数表を書く",
+          "2の倍数に赤をぬる",
+          "5の倍数に青をぬる"
+        ],
+        "tip": "ぬった色の並びのきまりを見つけよう！"
+      },
+      {
+        "emoji": "🍕",
+        "title": "半分と4分の1を調べよう",
+        "description": "折り紙を折って半分・4分の1の形を作ってノートにはろう。",
+        "steps": [
+          "折り紙を半分に折る",
+          "さらに半分に折って4分の1を作る",
+          "ノートに貼って図とことばでまとめる"
+        ],
+        "tip": "ピザやケーキで考えるとわかりやすいよ！"
+      },
+      {
+        "emoji": "➕",
+        "title": "虫食い計算をつくろう",
+        "description": "□を使った計算問題を10問作って答えも書いておこう。",
+        "steps": [
+          "たし算・ひき算の式を10問作る",
+          "答えのところを□にする",
+          "友達や家族に解いてもらう"
+        ],
+        "tip": "自分で問題を作ると、解き方が深く理解できるよ！"
+      },
+      {
+        "emoji": "🌡️",
+        "title": "大きい数のしくみを調べよう",
+        "description": "100より大きい数のしくみ（百の位・十の位・一の位）をまとめよう。",
+        "steps": [
+          "100・200・300…を書く",
+          "何百何十何という数を5つ作る",
+          "位ごとに色分けして書く"
+        ],
+        "tip": "数の棒や図を使って表すとわかりやすいよ！"
+      },
+      {
+        "emoji": "🔁",
+        "title": "くりあがり・くりさがりを完全マスター",
+        "description": "くりあがりのあるたし算とくりさがりのあるひき算を10問ずつ解こう。",
+        "steps": [
+          "くりあがりのあるたし算を10問作る",
+          "くりさがりのあるひき算も10問作る",
+          "答えを確認する"
+        ],
+        "tip": "指を使って確かめるのもOK！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "📐",
+        "title": "身のまわりの図形をさがそう",
+        "description": "家の中から三角形・四角形・円を見つけてスケッチしてまとめよう。",
+        "steps": [
+          "三角形・四角形・円を3つずつさがす",
+          "ノートにスケッチする",
+          "名前と特ちょうを書く"
+        ],
+        "tip": "窓・時計・タイルなど意外といろんな形があるよ！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "大きな数の計算に挑戦しよう",
+        "description": "4けた以上のたし算・ひき算の問題を自分で作って解こう。",
+        "steps": [
+          "4けたの数を2つランダムに書く",
+          "たし算とひき算の式を作る",
+          "答えを計算して確認する"
+        ],
+        "tip": "答えを概算で予想してから解くといいよ！"
+      },
+      {
+        "emoji": "📊",
+        "title": "グラフを読んで気づきを書こう",
+        "description": "教科書や新聞のグラフを見て気づいたことを3つ文章に書こう。",
+        "steps": [
+          "グラフをえらぶ",
+          "数字をくらべる",
+          "気づいたことを文で書く"
+        ],
+        "tip": "「一番多い」「比べると」などの表現を使おう！"
+      },
+      {
+        "emoji": "🔲",
+        "title": "面積の求め方を練習しよう",
+        "description": "長方形・正方形の面積を求める問題を5問自分で作って解こう。",
+        "steps": [
+          "たて・よこの長さをランダムにきめる",
+          "面積を計算する",
+          "答えを確認する"
+        ],
+        "tip": "「たて×よこ」の公式をしっかり覚えよう！"
+      },
+      {
+        "emoji": "⚖️",
+        "title": "重さの単位を整理しよう",
+        "description": "g・kg・tの単位の関係と身近なものの重さをまとめよう。",
+        "steps": [
+          "g・kg・tの関係を書く",
+          "身近なものの重さを5つ調べる",
+          "単位を換算してみる"
+        ],
+        "tip": "体重計で実際にはかってみよう！"
+      },
+      {
+        "emoji": "🕐",
+        "title": "時間の計算を練習しよう",
+        "description": "「3時20分から4時10分まで何分?」などの時間計算を10問解こう。",
+        "steps": [
+          "時間の計算の例を3つ書く",
+          "時計の絵を使って考える",
+          "10問自作して解く"
+        ],
+        "tip": "1時間=60分、1日=24時間をしっかり覚えよう！"
+      },
+      {
+        "emoji": "🔀",
+        "title": "わり算の文章題を作ろう",
+        "description": "日常生活を題材にしたわり算の文章題を5問作って解こう。",
+        "steps": [
+          "わり算が使える場面を考える",
+          "文章題を5問作る",
+          "答えと式を書く"
+        ],
+        "tip": "「同じ数ずつ分ける」場面を考えよう！"
+      },
+      {
+        "emoji": "🌡️",
+        "title": "折れ線グラフを書こう",
+        "description": "1週間の気温や体重などを記録して折れ線グラフにまとめよう。",
+        "steps": [
+          "記録するデータをきめる",
+          "毎日データをとる",
+          "折れ線グラフを書く"
+        ],
+        "tip": "変化の「上がり下がり」に注目しよう！"
+      },
+      {
+        "emoji": "✖️",
+        "title": "かけ算・わり算の関係を整理しよう",
+        "description": "12÷3=4と3×4=12のような関係を使って問題を作ろう。",
+        "steps": [
+          "かけ算の式を5つ書く",
+          "それぞれのわり算の式を書く",
+          "問題形式にして解いてみる"
+        ],
+        "tip": "かけ算とわり算は「ぎゃく」の関係！"
+      },
+      {
+        "emoji": "🌀",
+        "title": "円と球の特ちょうをまとめよう",
+        "description": "円の「中心・半径・直径」の関係と球との違いをまとめよう。",
+        "steps": [
+          "円の各部分の名前と意味を書く",
+          "半径と直径の関係を書く",
+          "球との違いを図でまとめる"
+        ],
+        "tip": "コンパスで円を書いてみよう！"
+      },
+      {
+        "emoji": "📏",
+        "title": "小数の計算をマスターしよう",
+        "description": "小数のたし算・ひき算の問題を10問作って解こう。",
+        "steps": [
+          "小数を含む式を10問作る",
+          "小数点の位置に注意して計算する",
+          "答えを確認する"
+        ],
+        "tip": "小数点をそろえて計算するのがポイント！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "概数の使い方を練習しよう",
+        "description": "四捨五入を使って大きな数を概数にする問題を5問解こう。",
+        "steps": [
+          "概数にしたい数を5つ書く",
+          "四捨五入する位をきめる",
+          "概数にして答えを書く"
+        ],
+        "tip": "「およそ」「約」が使われる場面を考えよう！"
+      },
+      {
+        "emoji": "📐",
+        "title": "立体の展開図を書こう",
+        "description": "サイコロ（立方体）の展開図を全部（11種類）書いてみよう。",
+        "steps": [
+          "立方体の面は6面あることを確認する",
+          "1種類書いてみる",
+          "できるだけ多くの種類をさがす"
+        ],
+        "tip": "全部で11種類あるよ。全部見つけられるかな？"
+      },
+      {
+        "emoji": "🍰",
+        "title": "分数の意味を理解しよう",
+        "description": "折り紙や絵を使って分数の意味を図解でまとめよう。",
+        "steps": [
+          "1/2・1/3・1/4を折り紙で作る",
+          "分母と分子の意味を書く",
+          "同じ大きさの分数を見つける"
+        ],
+        "tip": "ピザを同じ大きさに切る場面で考えよう！"
+      },
+      {
+        "emoji": "🔺",
+        "title": "角の大きさを調べよう",
+        "description": "三角定規の角度を調べて身の回りのものの角度をはかってみよう。",
+        "steps": [
+          "三角定規の角の大きさを書く",
+          "直角・鋭角・鈍角の定義をまとめる",
+          "家の中で角度をはかってみる"
+        ],
+        "tip": "分度器を使うとより正確に調べられるよ！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "🧩",
+        "title": "速さ・時間・道のりの問題を解こう",
+        "description": "速さの公式を使う問題を3問作って解き方を説明しながら解こう。",
+        "steps": [
+          "速さの公式（み・は・じ）を書く",
+          "問題を3問作る",
+          "解き方を言葉で説明しながら解く"
+        ],
+        "tip": "解き方を人に教えるつもりで書くと理解が深まるよ！"
+      },
+      {
+        "emoji": "📐",
+        "title": "面積・体積を計算しよう",
+        "description": "家の部屋や家具の面積・体積をはかって計算しよう。",
+        "steps": [
+          "はかる場所をえらぶ",
+          "メジャーでたて・よこ・高さをはかる",
+          "公式で面積・体積を計算する"
+        ],
+        "tip": "単位をそろえるのを忘れずに！"
+      },
+      {
+        "emoji": "📈",
+        "title": "データをグラフにまとめよう",
+        "description": "家族の身長や気温など手近なデータを表・グラフにまとめよう。",
+        "steps": [
+          "データを5〜10個集める",
+          "表に整理する",
+          "棒グラフか折れ線グラフを書く"
+        ],
+        "tip": "グラフのタイトルと単位を必ず書こう！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "素数を調べよう",
+        "description": "エラトステネスのふるいを使って1〜100の素数をすべて見つけよう。",
+        "steps": [
+          "1〜100の数表を書く",
+          "2の倍数（2以外）を消す",
+          "3・5・7の倍数も消していく"
+        ],
+        "tip": "残った数がすべて素数！何個あるか数えよう。"
+      },
+      {
+        "emoji": "📊",
+        "title": "割合の問題を解こう",
+        "description": "日常生活の中の割合（打率・正解率など）を計算してまとめよう。",
+        "steps": [
+          "割合が使われる場面を3つさがす",
+          "割合の公式で計算する",
+          "百分率にも直してみる"
+        ],
+        "tip": "「もとにする量」をはっきりさせるのがポイント！"
+      },
+      {
+        "emoji": "🔺",
+        "title": "拡大図と縮図を書こう",
+        "description": "地図の縮尺を読んで実際の距離を計算し縮図を書こう。",
+        "steps": [
+          "地図の縮尺を確認する",
+          "2地点間の地図上の距離をはかる",
+          "実際の距離を計算する"
+        ],
+        "tip": "縮尺1/25000の地図で地図上の1cmは実際何mか計算しよう！"
+      },
+      {
+        "emoji": "🔲",
+        "title": "正多角形の性質を調べよう",
+        "description": "正三角形・正方形・正六角形の内角の和を計算してまとめよう。",
+        "steps": [
+          "内角の和の公式を調べる",
+          "各正多角形の内角の和を計算する",
+          "1つの角の大きさも求める"
+        ],
+        "tip": "(n-2)×180°の公式を使おう！"
+      },
+      {
+        "emoji": "➗",
+        "title": "分数の計算を完全マスターしよう",
+        "description": "分数のたし算・ひき算・かけ算・わり算を各2問ずつ解こう。",
+        "steps": [
+          "4種類の計算を各2問作る",
+          "通分や逆数の方法を確認する",
+          "答えを約分して完成させる"
+        ],
+        "tip": "わり算は「逆数をかける」に直すのがポイント！"
+      },
+      {
+        "emoji": "🌐",
+        "title": "比例と反比例をグラフにしよう",
+        "description": "比例・反比例の関係を表に書いてグラフにまとめよう。",
+        "steps": [
+          "yとxの関係を式で表す",
+          "表を作って値を計算する",
+          "グラフを書いて特ちょうをまとめる"
+        ],
+        "tip": "比例は直線、反比例は曲線になるよ！"
+      },
+      {
+        "emoji": "💹",
+        "title": "場合の数を数えよう",
+        "description": "3枚のカードの並べ方は何通りか樹形図で全部書き出そう。",
+        "steps": [
+          "カードに1・2・3と書く",
+          "1から始まる並べ方を全部書く",
+          "樹形図で全部の場合を整理する"
+        ],
+        "tip": "何枚のカードでも同じ方法で数えられるよ！"
+      },
+      {
+        "emoji": "📐",
+        "title": "円の面積・周の長さを計算しよう",
+        "description": "半径の違う円3種類の面積と周の長さを計算して比べよう。",
+        "steps": [
+          "半径1cm・3cm・5cmの円をえらぶ",
+          "面積と周の長さを計算する",
+          "結果を表にまとめる"
+        ],
+        "tip": "π（パイ）≒3.14を使おう！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "最大公約数・最小公倍数を求めよう",
+        "description": "2〜3つの数の最大公約数・最小公倍数を求める問題を5問作ろう。",
+        "steps": [
+          "2つの数を5組えらぶ",
+          "最大公約数を求める",
+          "最小公倍数も求める"
+        ],
+        "tip": "すだれ算（連除法）を使うと便利だよ！"
+      },
+      {
+        "emoji": "📏",
+        "title": "線対称・点対称な図形を書こう",
+        "description": "線対称・点対称になる図形をそれぞれ3種類書いてまとめよう。",
+        "steps": [
+          "線対称の図形を3種類書く",
+          "点対称の図形を3種類書く",
+          "対称の軸や対称の中心を書き込む"
+        ],
+        "tip": "身の回りのロゴやデザインで探してみよう！"
+      },
+      {
+        "emoji": "🌡️",
+        "title": "度数分布表をつくろう",
+        "description": "クラスのテストの点数や天気などのデータを集めて度数分布表を作ろう。",
+        "steps": [
+          "データを10個以上集める",
+          "区間ごとに分類する",
+          "度数分布表と柱状グラフを書く"
+        ],
+        "tip": "データの「かたより」や「ばらつき」に注目しよう！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "文字と式の問題を解こう",
+        "description": "xやaを使った式でいろいろな数量の関係を表す練習をしよう。",
+        "steps": [
+          "文字を使った式の例を3つ書く",
+          "xに数を代入して値を求める",
+          "問題形式で5問解く"
+        ],
+        "tip": "文字は「決まっていない数」の代わり！"
+      }
+    ]
+  },
+  "rika": {
+    "低": [
+      {
+        "emoji": "🌱",
+        "title": "植物の観察日記をつけよう",
+        "description": "家のそとの植物を1つえらんで色・形・大きさを絵と文で記録しよう。",
+        "steps": [
+          "観察する植物をえらぶ",
+          "色・形・大きさをよく見る",
+          "絵をかいて気づきを文にする"
+        ],
+        "tip": "毎日同じ植物を観察するともっと面白い発見があるよ！"
+      },
+      {
+        "emoji": "🐛",
+        "title": "いきものを観察しよう",
+        "description": "庭や公園で見つけたいきものを観察してスケッチと気づきをまとめよう。",
+        "steps": [
+          "いきものを1匹さがす",
+          "動き・色・形をよく見る",
+          "ノートにスケッチ＋気づきを書く"
+        ],
+        "tip": "名前がわからなくても気づいたことを書くことが大事！"
+      },
+      {
+        "emoji": "☁️",
+        "title": "天気と空の観察をしよう",
+        "description": "今日の空をよく見て雲の形や色を絵と文で記録しよう。",
+        "steps": [
+          "空を5分間観察する",
+          "雲の形・色・量をメモする",
+          "絵と文でノートに記録する"
+        ],
+        "tip": "朝・昼・夕方と3回見くらべると変化がわかるよ！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "葉っぱを集めてまとめよう",
+        "description": "いろいろな形の葉っぱを5枚集めて形・大きさを記録しよう。",
+        "steps": [
+          "葉っぱを5種類集める",
+          "形・色・大きさをスケッチ",
+          "名前を調べてノートにはる"
+        ],
+        "tip": "葉の形の特ちょうを言葉で表してみよう！"
+      },
+      {
+        "emoji": "🦋",
+        "title": "こん虫のからだを調べよう",
+        "description": "チョウやバッタなどこん虫のからだを図鑑で調べてスケッチしよう。",
+        "steps": [
+          "こん虫を1つえらぶ",
+          "頭・むね・はらの3つに注目する",
+          "図鑑を見ながらスケッチする"
+        ],
+        "tip": "あし（6本）とはねの数もかきこもう！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "花のつくりを観察しよう",
+        "description": "花を1つえらんで花びら・めしべ・おしべを観察してスケッチしよう。",
+        "steps": [
+          "身近な花を1つえらぶ",
+          "外側からよく観察する",
+          "各部分をスケッチして名前を書く"
+        ],
+        "tip": "花びらの枚数を数えてみよう！"
+      },
+      {
+        "emoji": "🔆",
+        "title": "かげのでき方を調べよう",
+        "description": "晴れた日に外でかげを観察してかげのでき方をまとめよう。",
+        "steps": [
+          "晴れた日に外に出る",
+          "自分のかげを観察する",
+          "かげの方向・長さを記録する"
+        ],
+        "tip": "朝・昼・夕方でかげはどう変わるか観察しよう！"
+      },
+      {
+        "emoji": "💧",
+        "title": "水のしみこみ方を調べよう",
+        "description": "土・砂・砂利に水をかけてしみこむ速さのちがいを比べよう。",
+        "steps": [
+          "3種類の土を用意する",
+          "同じ量の水をかける",
+          "しみこむ速さを比べて記録する"
+        ],
+        "tip": "どれが一番早くしみこんだか理由も考えよう！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "光の色を調べよう",
+        "description": "プリズムや水を使って光を分けて虹の色を観察しよう。",
+        "steps": [
+          "水を入れたコップや鏡を使う",
+          "光を当てて色を確認する",
+          "色の種類と順番をノートに記録する"
+        ],
+        "tip": "晴れた日の朝、水を使うとうまくいくよ！"
+      },
+      {
+        "emoji": "🌬️",
+        "title": "風を感じる実験をしよう",
+        "description": "紙・羽根・テープなど軽いものを使って風の強さを調べよう。",
+        "steps": [
+          "軽いものを5種類用意する",
+          "うちわで風を送る",
+          "どれが一番よく動くか記録する"
+        ],
+        "tip": "なぜ違いがあるか「重さ」と関係があるか考えよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "土の種類を比べよう",
+        "description": "砂・泥・黒土など土の種類を3種類集めて色・粒の大きさを比べよう。",
+        "steps": [
+          "3種類の土を集める",
+          "色・粒の大きさを観察する",
+          "水を加えたときの変化も比べる"
+        ],
+        "tip": "どの土が植物を育てるのに向いているか考えよう！"
+      },
+      {
+        "emoji": "🐚",
+        "title": "貝がらを観察しよう",
+        "description": "貝がらや小石を集めて形・色・模様をスケッチしてまとめよう。",
+        "steps": [
+          "貝がらや小石を5個集める",
+          "形・色・模様をよく見る",
+          "スケッチして特ちょうを書く"
+        ],
+        "tip": "同じように見えても一つずつちがいがあるよ！"
+      },
+      {
+        "emoji": "🌻",
+        "title": "植物の育ち方をまとめよう",
+        "description": "アサガオやヒマワリの育ち方を図鑑で調べて成長の順番をまとめよう。",
+        "steps": [
+          "育てたことがある植物をえらぶ",
+          "たね→芽→葉→花の順番を調べる",
+          "絵と文で成長の図をかく"
+        ],
+        "tip": "実際に種を植えて観察すると本物の力がつくよ！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "水のふしぎを調べよう",
+        "description": "水はどんな形にも変わることを実験で確かめてノートにまとめよう。",
+        "steps": [
+          "コップ・お椀・袋に水を入れる",
+          "それぞれの形をスケッチする",
+          "気づいたことを書く"
+        ],
+        "tip": "水は入れ物の形に合わせて変わる！なぜか考えてみよう。"
+      },
+      {
+        "emoji": "🌙",
+        "title": "月や星の観察をしよう",
+        "description": "夜の月や明るい星を観察してスケッチと気づきを記録しよう。",
+        "steps": [
+          "晴れた夜に月や星を見る",
+          "形・明るさ・位置をスケッチする",
+          "翌日も観察して変化を比べる"
+        ],
+        "tip": "同じ時間に観察すると変化がよくわかるよ！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🧲",
+        "title": "磁石で実験しよう",
+        "description": "家の中のものに磁石をあててくっつくものとくっつかないものを調べよう。",
+        "steps": [
+          "磁石と調べるものを10個用意する",
+          "1つずつ試してくっつくか記録する",
+          "くっついたものの共通点を考える"
+        ],
+        "tip": "金属でもくっつかないものがあるよ！なぜか考えてみよう。"
+      },
+      {
+        "emoji": "🌡️",
+        "title": "気温の変化を記録しよう",
+        "description": "1日の気温を朝・昼・夕方と3回はかってグラフにまとめよう。",
+        "steps": [
+          "温度計で朝・昼・夕方に気温をはかる",
+          "記録をノートにメモする",
+          "折れ線グラフを書く"
+        ],
+        "tip": "晴れの日と雨の日を比べると面白い発見があるよ！"
+      },
+      {
+        "emoji": "💧",
+        "title": "水のすがたと変化を調べよう",
+        "description": "水が氷・水・水蒸気に変わる温度と変化をノートにまとめよう。",
+        "steps": [
+          "教科書で水の変化を確認する",
+          "温度と状態の変化を表にする",
+          "なぜ変化するか自分なりに説明する"
+        ],
+        "tip": "実際に氷をとかして観察してみると実感できるよ！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "虫めがねで観察しよう",
+        "description": "虫めがねで葉・砂・布などを観察して肉眼との違いをまとめよう。",
+        "steps": [
+          "観察するものを5種類えらぶ",
+          "肉眼と虫めがねで観察する",
+          "見え方の違いをスケッチして記録する"
+        ],
+        "tip": "光の当て方を変えると見え方が変わるよ！"
+      },
+      {
+        "emoji": "⚡",
+        "title": "電気を通すものを調べよう",
+        "description": "乾電池・豆電球・導線を使って電気を通すものと通さないものを調べよう。",
+        "steps": [
+          "回路を作る",
+          "調べるものを10種類用意する",
+          "電気が通るか1つずつ試して記録する"
+        ],
+        "tip": "金属でも電気を通しやすいものと通しにくいものがあるよ！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "植物の成長に必要なものを調べよう",
+        "description": "日当たり・水・肥料の有無で植物の育ち方がどう変わるか調べよう。",
+        "steps": [
+          "同じ種類の種を3鉢用意する",
+          "条件を1つだけ変えて育てる",
+          "1週間後の違いを比べて記録する"
+        ],
+        "tip": "1回の実験で変える条件は1つだけにするのが科学の基本！"
+      },
+      {
+        "emoji": "🌙",
+        "title": "月の形の変化を観察しよう",
+        "description": "1週間毎日同じ時間に月を観察して形の変化を記録しよう。",
+        "steps": [
+          "毎日同じ時間に月を見る",
+          "形をスケッチして日付を書く",
+          "1週間分を並べて変化をまとめる"
+        ],
+        "tip": "月の形が変わる理由も調べてみよう！"
+      },
+      {
+        "emoji": "💡",
+        "title": "電気のつなぎ方を調べよう",
+        "description": "直列つなぎと並列つなぎでの豆電球の明るさの違いを調べよう。",
+        "steps": [
+          "直列つなぎの回路を作る",
+          "並列つなぎの回路も作る",
+          "明るさと電池の持ちを比べる"
+        ],
+        "tip": "懐中電灯など実際の製品はどちらのつなぎ方か調べよう！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "川の働きを調べよう",
+        "description": "川の上流・中流・下流で石の形や大きさがどう変わるか調べよう。",
+        "steps": [
+          "教科書で川の働きを確認する",
+          "上流・中流・下流の石を比べる",
+          "なぜ違いがあるか考える"
+        ],
+        "tip": "近くの川がある場合は実際に石を比べてみよう！"
+      },
+      {
+        "emoji": "🌦️",
+        "title": "天気の変化を予測しよう",
+        "description": "3日間天気を観察・記録して次の日の天気を予測する練習をしよう。",
+        "steps": [
+          "3日間天気を記録する",
+          "雲の形や風向きもメモする",
+          "4日目の天気を予測して確認する"
+        ],
+        "tip": "雲の種類と天気の関係を調べると予測精度が上がるよ！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "食物連鎖をまとめよう",
+        "description": "草→バッタ→カエル→ヘビのような食物連鎖を図でまとめよう。",
+        "steps": [
+          "身近な生き物を10種類書く",
+          "食べる・食べられる関係を矢印で書く",
+          "食物連鎖の図を完成させる"
+        ],
+        "tip": "矢印の向きは「食べられる方→食べる方」だよ！"
+      },
+      {
+        "emoji": "🧪",
+        "title": "溶け方の違いを調べよう",
+        "description": "食塩・砂糖・片栗粉を水に入れて溶け方の違いを調べて記録しよう。",
+        "steps": [
+          "3種類の粉を同量ずつ水に入れる",
+          "よくかき混ぜる",
+          "溶けたか・濁ったかを記録する"
+        ],
+        "tip": "温度を変えると溶け方が変わるか試してみよう！"
+      },
+      {
+        "emoji": "🔬",
+        "title": "体のつくりを調べよう",
+        "description": "人間の消化器官・骨格・筋肉のしくみを図解でノートにまとめよう。",
+        "steps": [
+          "調べる器官をえらぶ",
+          "図鑑や教科書でしくみを調べる",
+          "図解でノートにまとめる"
+        ],
+        "tip": "食べたものがどこを通るか順番に書いてみよう！"
+      },
+      {
+        "emoji": "♻️",
+        "title": "自然のしくみ（循環）を調べよう",
+        "description": "水・空気・養分が自然界でどのようにめぐるかを図でまとめよう。",
+        "steps": [
+          "水の循環をえらぶ",
+          "蒸発→雲→雨の流れを図にする",
+          "他の循環（酸素・炭素）も調べる"
+        ],
+        "tip": "自然はむだがなくできているね！"
+      },
+      {
+        "emoji": "🌱",
+        "title": "発芽の条件を調べよう",
+        "description": "種が芽を出すために必要な条件（水・温度・空気）を調べよう。",
+        "steps": [
+          "発芽の条件を3つ調べる",
+          "条件を変えた実験を計画する",
+          "結果を予測してから実験する"
+        ],
+        "tip": "1つの条件だけ変えることが実験のポイント！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "🔭",
+        "title": "星座を調べてまとめよう",
+        "description": "季節の星座を1つえらんで星の位置・名前・神話をノートにまとめよう。",
+        "steps": [
+          "今の季節の星座を1つえらぶ",
+          "星の名前と位置を調べる",
+          "その星座にまつわる話をまとめる"
+        ],
+        "tip": "実際に夜空と見くらべてみよう！"
+      },
+      {
+        "emoji": "⚗️",
+        "title": "溶解度を実験しよう",
+        "description": "塩・砂糖を水に溶かして溶ける量の違いを調べて記録しよう。",
+        "steps": [
+          "塩と砂糖を同じ量の水に少しずつ入れる",
+          "溶けなくなったら量を記録する",
+          "2つを比べてわかったことを書く"
+        ],
+        "tip": "水の温度を変えるとどうなるか試すともっと面白い！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "植物の働きをまとめよう",
+        "description": "光合成・蒸散・呼吸の仕組みを図解でノートにまとめよう。",
+        "steps": [
+          "教科書で3つの働きを確認する",
+          "図を書いて矢印で説明する",
+          "それぞれの働きが大切な理由を書く"
+        ],
+        "tip": "図に色をつけると見やすくなるよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "地層のできかたをまとめよう",
+        "description": "地層がどのようにしてできるか図を使ってわかりやすくまとめよう。",
+        "steps": [
+          "地層ができる順番を調べる",
+          "堆積・侵食・運搬の仕組みを書く",
+          "図解でノートにまとめる"
+        ],
+        "tip": "地層を読むと大昔の環境がわかるよ！"
+      },
+      {
+        "emoji": "⚡",
+        "title": "電磁石の仕組みを調べよう",
+        "description": "コイルと電池で電磁石を作り磁石との違いをまとめよう。",
+        "steps": [
+          "電磁石の作り方を調べる",
+          "コイルの巻き数と磁力の関係を調べる",
+          "普通の磁石との違いをまとめる"
+        ],
+        "tip": "電流を切ると磁力がなくなるのが電磁石の特ちょう！"
+      },
+      {
+        "emoji": "🌱",
+        "title": "植物の分類をしよう",
+        "description": "身近な植物10種類を葉・茎・根の特ちょうで分類してまとめよう。",
+        "steps": [
+          "植物を10種類えらぶ",
+          "葉・茎・根の形を調べる",
+          "共通点でグループに分ける"
+        ],
+        "tip": "単子葉類と双子葉類のちがいに注目しよう！"
+      },
+      {
+        "emoji": "🌋",
+        "title": "火山と地震を調べよう",
+        "description": "日本の火山・地震の特ちょうとそのメカニズムをまとめよう。",
+        "steps": [
+          "日本の主な火山を5つ書く",
+          "地震が起きる仕組みを調べる",
+          "防災との関係もまとめる"
+        ],
+        "tip": "プレートの動きと火山・地震の関係を図にしよう！"
+      },
+      {
+        "emoji": "🌞",
+        "title": "太陽系をまとめよう",
+        "description": "太陽系の8つの惑星の特ちょうを比較表にまとめよう。",
+        "steps": [
+          "8つの惑星の名前を書く",
+          "大きさ・距離・環境を調べる",
+          "比較表に整理する"
+        ],
+        "tip": "大きさの比較図を書くと宇宙のスケールが実感できるよ！"
+      },
+      {
+        "emoji": "💧",
+        "title": "水溶液の性質を調べよう",
+        "description": "酸性・中性・アルカリ性の水溶液の特ちょうと違いをまとめよう。",
+        "steps": [
+          "酸性・中性・アルカリ性の定義を書く",
+          "それぞれの例を3つずつ書く",
+          "リトマス紙の色の変化をまとめる"
+        ],
+        "tip": "レモン汁・水・石鹸水はそれぞれ何性か調べよう！"
+      },
+      {
+        "emoji": "🌡️",
+        "title": "気象のしくみをまとめよう",
+        "description": "低気圧・高気圧・前線の仕組みと天気の変化をまとめよう。",
+        "steps": [
+          "低気圧と高気圧の違いを調べる",
+          "温暖前線と寒冷前線の特ちょうを書く",
+          "天気図の読み方をまとめる"
+        ],
+        "tip": "天気予報を見ながら確認してみよう！"
+      },
+      {
+        "emoji": "⚙️",
+        "title": "てこのつりあいを調べよう",
+        "description": "てこの支点・力点・作用点の関係と計算方法をまとめよう。",
+        "steps": [
+          "てこの3点（支点・力点・作用点）を書く",
+          "つりあいの式を調べる",
+          "問題を3問作って解く"
+        ],
+        "tip": "シーソーや缶切りがてこの例だよ！"
+      },
+      {
+        "emoji": "🔋",
+        "title": "電池のしくみを調べよう",
+        "description": "乾電池がどのように電気を作るか仕組みをノートにまとめよう。",
+        "steps": [
+          "電池の仕組みを調べる",
+          "プラス・マイナス極の役割を書く",
+          "充電式電池との違いも調べる"
+        ],
+        "tip": "電気の流れをアニメーションで動画サイトで確認してみよう！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "生態系と環境問題をまとめよう",
+        "description": "生態系のバランスと人間活動の影響をノートにまとめよう。",
+        "steps": [
+          "生態系の仕組みを図でまとめる",
+          "人間活動の影響を3つ書く",
+          "解決策を自分なりに考える"
+        ],
+        "tip": "SDGsとのつながりも考えてみよう！"
+      },
+      {
+        "emoji": "🔬",
+        "title": "顕微鏡の使い方をまとめよう",
+        "description": "顕微鏡の各部分の名前と使い方をノートにまとめよう。",
+        "steps": [
+          "顕微鏡の各部分を調べる",
+          "使い方の手順をまとめる",
+          "観察できるものの例を書く"
+        ],
+        "tip": "低倍率から高倍率の順で観察するのが基本！"
+      },
+      {
+        "emoji": "🧬",
+        "title": "遺伝と進化をまとめよう",
+        "description": "生き物がどのように変化してきたかを図解でわかりやすくまとめよう。",
+        "steps": [
+          "進化の意味を調べる",
+          "身近な生き物の進化の例を書く",
+          "系統樹を書いてみる"
+        ],
+        "tip": "チンパンジーとヒトの共通点と違いを考えよう！"
+      }
+    ]
+  },
+  "shakai": {
+    "低": [
+      {
+        "emoji": "🗺️",
+        "title": "家のまわりの地図を書こう",
+        "description": "家から学校までの道のりを思い出しながら地図を書いてみよう。",
+        "steps": [
+          "紙に家と学校の場所を書く",
+          "通る道と目印を書き加える",
+          "お店・公園・信号などを書き込む"
+        ],
+        "tip": "実際に歩いて確かめてみるともっとくわしい地図になるよ！"
+      },
+      {
+        "emoji": "🏪",
+        "title": "家のまわりのお店調べ",
+        "description": "近所にどんなお店があるか調べて種類ごとに分類しよう。",
+        "steps": [
+          "知っているお店を全部書き出す",
+          "食べもの屋・服屋などに分類する",
+          "どのお店が多いか数えてまとめる"
+        ],
+        "tip": "家族に聞くともっとたくさん見つかるよ！"
+      },
+      {
+        "emoji": "🚒",
+        "title": "まちを守る仕事を調べよう",
+        "description": "消防士・警察官など、まちを守る仕事を3つ調べてまとめよう。",
+        "steps": [
+          "3つの仕事をえらぶ",
+          "それぞれの仕事内容を調べる",
+          "ノートに絵と文でまとめる"
+        ],
+        "tip": "学校の近くの消防署や交番を観察してみよう！"
+      },
+      {
+        "emoji": "🌾",
+        "title": "食べものはどこからくるの？",
+        "description": "給食や家の食事に使われている食材がどこから来るか調べよう。",
+        "steps": [
+          "今日の食事に使われた食材を書く",
+          "産地（どこで作られたか）を調べる",
+          "地図に産地を書き込む"
+        ],
+        "tip": "スーパーのパッケージに産地が書いてあるよ！"
+      },
+      {
+        "emoji": "🏙️",
+        "title": "市のしせつを調べよう",
+        "description": "図書館・公民館・市役所など市のしせつを3つ調べてまとめよう。",
+        "steps": [
+          "3つのしせつをえらぶ",
+          "場所と役割を調べる",
+          "どんな人が使うか考えて書く"
+        ],
+        "tip": "実際に行ったことがある施設から調べよう！"
+      },
+      {
+        "emoji": "📅",
+        "title": "年中行事をまとめよう",
+        "description": "1月から12月の年中行事を月ごとにカレンダーにまとめよう。",
+        "steps": [
+          "1〜12月に行事を1つずつ書く",
+          "その行事の意味を調べる",
+          "イラストも書いてカレンダーにする"
+        ],
+        "tip": "お正月・節分・お盆など家族に聞いてみよう！"
+      },
+      {
+        "emoji": "🗾",
+        "title": "都道府県の場所を覚えよう",
+        "description": "白地図に都道府県を書き込んで場所を覚えよう。",
+        "steps": [
+          "白地図を用意する（書いてもOK）",
+          "知っている都道府県を書き込む",
+          "地方（関東・東北など）に色分けする"
+        ],
+        "tip": "まず自分が住んでいる地方から覚えよう！"
+      },
+      {
+        "emoji": "🚰",
+        "title": "水はどこからくるの？",
+        "description": "水道の水がどこから来てどのように届くか調べてまとめよう。",
+        "steps": [
+          "水道の仕組みを調べる",
+          "ダム・浄水場・水道管の流れを書く",
+          "実際の水源を調べる"
+        ],
+        "tip": "市のホームページに詳しい情報があるよ！"
+      },
+      {
+        "emoji": "♻️",
+        "title": "ごみのゆくえを調べよう",
+        "description": "燃えるごみ・燃えないごみ・リサイクルがどこへ行くか調べよう。",
+        "steps": [
+          "3種類のごみの行き先を調べる",
+          "分別の理由を考える",
+          "ごみの流れを図にまとめる"
+        ],
+        "tip": "ごみ収集車が来る日と種類を確認しよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界のいろいろな国を調べよう",
+        "description": "気になる国を3つえらんで場所・国旗・有名なものをまとめよう。",
+        "steps": [
+          "3つの国をえらぶ",
+          "地図で場所を確認する",
+          "国旗・有名なものを調べてまとめる"
+        ],
+        "tip": "行ってみたい国をえらんで調べると楽しいよ！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "自分の県について調べよう",
+        "description": "住んでいる都道府県の形・名所・特産品を調べてまとめよう。",
+        "steps": [
+          "都道府県の形を書く",
+          "有名な名所を3つ書く",
+          "特産品を3つ調べる"
+        ],
+        "tip": "都道府県のゆるキャラも調べてみよう！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "海と山のようすを調べよう",
+        "description": "海のそばと山のそばでは生活や自然がどう違うか比べよう。",
+        "steps": [
+          "海と山それぞれの特ちょうを書く",
+          "食べもの・仕事・自然を比べる",
+          "表にまとめる"
+        ],
+        "tip": "行ったことがある場所を思い出しながら書こう！"
+      },
+      {
+        "emoji": "🚃",
+        "title": "交通機関を調べよう",
+        "description": "バス・電車・タクシーなど乗り物の種類と役割をまとめよう。",
+        "steps": [
+          "知っている交通機関を書き出す",
+          "それぞれの特ちょうを調べる",
+          "図や絵でまとめる"
+        ],
+        "tip": "実際に乗ったことがある乗り物から書いてみよう！"
+      },
+      {
+        "emoji": "🏫",
+        "title": "学校のまわりを調べよう",
+        "description": "学校のまわりにある建物や土地の種類を観察してまとめよう。",
+        "steps": [
+          "学校のまわりを頭の中でイメージする",
+          "田・畑・住宅・お店を数える",
+          "地図に書き込む"
+        ],
+        "tip": "実際に歩いて確かめると発見があるよ！"
+      },
+      {
+        "emoji": "🌐",
+        "title": "東西南北を覚えよう",
+        "description": "方位磁針や太陽の動きを使って東西南北を確かめてまとめよう。",
+        "steps": [
+          "東西南北の方向を書く",
+          "太陽はどの方向から昇るか書く",
+          "家の地図に方位を書き込む"
+        ],
+        "tip": "「東西南北」の覚え方を家族に聞いてみよう！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🗾",
+        "title": "都道府県の特産品を調べよう",
+        "description": "気になる都道府県を3つえらんで有名な食べものや名所をまとめよう。",
+        "steps": [
+          "3つの都道府県をえらぶ",
+          "特産品・名所を調べる",
+          "地図に書き込んでまとめる"
+        ],
+        "tip": "行ってみたい場所があったら理由も書いてみよう！"
+      },
+      {
+        "emoji": "🏭",
+        "title": "ものの作られ方を調べよう",
+        "description": "身近な食べもの（牛乳・パンなど）がどうやって作られるか調べよう。",
+        "steps": [
+          "調べるものをえらぶ",
+          "作り方の手順を調べる",
+          "絵と文でフローチャートにまとめる"
+        ],
+        "tip": "スーパーのパッケージにもヒントがあるよ！"
+      },
+      {
+        "emoji": "🗺️",
+        "title": "地図記号を全部覚えよう",
+        "description": "地図記号を20個以上覚えて実際の地図で見つけてみよう。",
+        "steps": [
+          "教科書で地図記号を20個書く",
+          "実際の地図（住宅地図など）で確認する",
+          "見つけた記号にチェックをつける"
+        ],
+        "tip": "神社・学校・病院など身近な記号から覚えよう！"
+      },
+      {
+        "emoji": "🌾",
+        "title": "農業のしごとを調べよう",
+        "description": "米・野菜・果物の農業の特ちょうと産地をまとめよう。",
+        "steps": [
+          "3つの農産物をえらぶ",
+          "主な産地と作り方を調べる",
+          "表にまとめる"
+        ],
+        "tip": "スーパーの産地表示を毎日見る習慣をつけよう！"
+      },
+      {
+        "emoji": "🏗️",
+        "title": "工業のさかんな地域を調べよう",
+        "description": "自動車・食品・電子機器など工業の種類と産地をまとめよう。",
+        "steps": [
+          "3種類の工業をえらぶ",
+          "さかんな地域を調べる",
+          "地図に書き込む"
+        ],
+        "tip": "身の回りの製品の産地を調べてみよう！"
+      },
+      {
+        "emoji": "🚢",
+        "title": "輸出入について調べよう",
+        "description": "日本がどんなものを輸出・輸入しているか上位5品目をまとめよう。",
+        "steps": [
+          "輸出の上位5品目を調べる",
+          "輸入の上位5品目を調べる",
+          "なぜその品目が多いか考える"
+        ],
+        "tip": "日本は何が得意で何が苦手か考えよう！"
+      },
+      {
+        "emoji": "⛑️",
+        "title": "自然災害と防災を調べよう",
+        "description": "地震・台風・洪水などの自然災害と防災の取り組みをまとめよう。",
+        "steps": [
+          "3種類の自然災害をえらぶ",
+          "被害と防災の取り組みを調べる",
+          "ハザードマップを見てみる"
+        ],
+        "tip": "自分の家の近くのハザードマップを調べよう！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "川のはたらきを調べよう",
+        "description": "川の上流・中流・下流の特ちょうと人々の生活との関わりをまとめよう。",
+        "steps": [
+          "川の3つの地点の特ちょうを書く",
+          "それぞれで行われている産業を調べる",
+          "地形の変化を図にする"
+        ],
+        "tip": "近くの川を実際に観察してみよう！"
+      },
+      {
+        "emoji": "📡",
+        "title": "情報をつたえるしごとを調べよう",
+        "description": "新聞・テレビ・インターネットで情報が伝わる仕組みを比べよう。",
+        "steps": [
+          "3つのメディアをえらぶ",
+          "情報が届くまでの仕組みを調べる",
+          "速さ・信頼性を比べる"
+        ],
+        "tip": "自分が一番よく使うメディアは何かな？"
+      },
+      {
+        "emoji": "🏙️",
+        "title": "都市と農村の違いをまとめよう",
+        "description": "都市部と農村部の人口・産業・生活の違いを比較表にまとめよう。",
+        "steps": [
+          "都市と農村の特ちょうを書く",
+          "人口・産業・生活を比べる",
+          "比較表にまとめる"
+        ],
+        "tip": "自分が住んでいる地域はどちらに近いか考えよう！"
+      },
+      {
+        "emoji": "♻️",
+        "title": "リサイクルの仕組みを調べよう",
+        "description": "紙・金属・ペットボトルがどのようにリサイクルされるか調べよう。",
+        "steps": [
+          "3種類の資源をえらぶ",
+          "回収から再製品化までの流れを調べる",
+          "フローチャートにまとめる"
+        ],
+        "tip": "リサイクルマークの種類も調べてみよう！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "自分の県の歴史を調べよう",
+        "description": "住んでいる都道府県の歴史的な出来事を3つ調べてまとめよう。",
+        "steps": [
+          "県ゆかりの歴史的出来事を3つさがす",
+          "時代と内容をまとめる",
+          "年表風にノートに書く"
+        ],
+        "tip": "地名や神社仏閣の名前に歴史が隠れているよ！"
+      },
+      {
+        "emoji": "🚰",
+        "title": "水はどこから来るの？",
+        "description": "家の水道水がどこから来てどう処理されるか流れを図でまとめよう。",
+        "steps": [
+          "教科書で水の流れを確認する",
+          "ダム→浄水場→家の流れを書く",
+          "自分の市町村の水源を調べる"
+        ],
+        "tip": "市のホームページに詳しい情報があることも！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "外国とのつながりを調べよう",
+        "description": "日本と関係の深い国を3つえらんで貿易・文化交流をまとめよう。",
+        "steps": [
+          "3つの国をえらぶ",
+          "貿易品目を調べる",
+          "文化交流の例を書く"
+        ],
+        "tip": "日本語の中に入っている外来語も調べてみよう！"
+      },
+      {
+        "emoji": "🛒",
+        "title": "消費生活を調べよう",
+        "description": "家の1週間の買い物を記録してどこで何を買うか分析しよう。",
+        "steps": [
+          "家族に1週間の買い物を教えてもらう",
+          "買い物した場所と品物を記録する",
+          "どんな傾向があるか考える"
+        ],
+        "tip": "ネット通販・スーパー・コンビニの使い分けを考えよう！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "📜",
+        "title": "歴史上の人物を調べよう",
+        "description": "気になる歴史上の人物を1人えらんで年表と功績をノートにまとめよう。",
+        "steps": [
+          "調べる人物をえらぶ",
+          "生まれた年・主な出来事を調べる",
+          "その人がなぜ大切かを書く"
+        ],
+        "tip": "同じ時代の別の人物と比べるともっと深まるよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界の国を調べよう",
+        "description": "気になる国を1つえらんで場所・文化・食べもの・言語をまとめよう。",
+        "steps": [
+          "調べる国をえらぶ",
+          "地図で場所を確認する",
+          "文化・食・言語を3つ以上まとめる"
+        ],
+        "tip": "日本との共通点や違いを見つけると面白い！"
+      },
+      {
+        "emoji": "⚖️",
+        "title": "日本の政治の仕組みをまとめよう",
+        "description": "国会・内閣・裁判所の役割と関係を図でわかりやすくまとめよう。",
+        "steps": [
+          "教科書で三権分立を確認する",
+          "それぞれの役割を書く",
+          "矢印で関係を図にまとめる"
+        ],
+        "tip": "なぜ3つに分けているのか理由を考えよう！"
+      },
+      {
+        "emoji": "🏯",
+        "title": "江戸時代の暮らしを調べよう",
+        "description": "江戸時代の人々の食事・服装・仕事を現代と比べてまとめよう。",
+        "steps": [
+          "江戸時代の生活を3つの観点で調べる",
+          "現代と比べる",
+          "表にまとめる"
+        ],
+        "tip": "現代に続いている文化や習慣を探してみよう！"
+      },
+      {
+        "emoji": "🌏",
+        "title": "SDGsと世界の問題をまとめよう",
+        "description": "SDGsの17目標から3つえらんで現状と自分にできることを書こう。",
+        "steps": [
+          "3つの目標をえらぶ",
+          "現状（データ）を調べる",
+          "自分にできることを考える"
+        ],
+        "tip": "ゴール同士のつながりも考えてみよう！"
+      },
+      {
+        "emoji": "🗳️",
+        "title": "選挙の仕組みを調べよう",
+        "description": "選挙の種類・投票の仕組み・なぜ大切かをノートにまとめよう。",
+        "steps": [
+          "選挙の種類を調べる",
+          "投票の流れを書く",
+          "なぜ参加が大切か自分の意見を書く"
+        ],
+        "tip": "18歳で選挙権が持てることを覚えておこう！"
+      },
+      {
+        "emoji": "💰",
+        "title": "税金の仕組みを調べよう",
+        "description": "税金の種類と使われ方をわかりやすくノートにまとめよう。",
+        "steps": [
+          "消費税・所得税など種類を調べる",
+          "税金が使われている場所を書く",
+          "税金がないとどうなるか考える"
+        ],
+        "tip": "身近な消費税から考えると理解しやすいよ！"
+      },
+      {
+        "emoji": "🌾",
+        "title": "日本の農業の課題をまとめよう",
+        "description": "食料自給率・農業人口・農地面積など日本農業の課題と解決策を書こう。",
+        "steps": [
+          "日本の食料自給率を調べる",
+          "農業人口の変化を調べる",
+          "解決策を考える"
+        ],
+        "tip": "データをグラフにすると変化がわかりやすいよ！"
+      },
+      {
+        "emoji": "📰",
+        "title": "今日のニュースを分析しよう",
+        "description": "気になるニュースを1つえらんで5W1H・背景・自分の意見を書こう。",
+        "steps": [
+          "ニュースを1つえらぶ",
+          "5W1Hで整理する",
+          "自分の意見と根拠を書く"
+        ],
+        "tip": "複数のメディアで同じニュースを比べてみよう！"
+      },
+      {
+        "emoji": "🌐",
+        "title": "国際連合の仕組みを調べよう",
+        "description": "国連の主な機関（安保理・総会・ユニセフ等）の役割をまとめよう。",
+        "steps": [
+          "国連の主な機関を5つ調べる",
+          "それぞれの役割を書く",
+          "日本との関わりを調べる"
+        ],
+        "tip": "ユニセフや難民問題など身近なつながりから考えよう！"
+      },
+      {
+        "emoji": "🏯",
+        "title": "明治維新をまとめよう",
+        "description": "明治維新の主な出来事と近代化への変化をノートにまとめよう。",
+        "steps": [
+          "明治維新の主な出来事を5つ書く",
+          "江戸時代との違いをまとめる",
+          "重要人物を3人書く"
+        ],
+        "tip": "「文明開化」で何が変わったか考えよう！"
+      },
+      {
+        "emoji": "⚔️",
+        "title": "戦国時代の三英傑を調べよう",
+        "description": "信長・秀吉・家康の政策と人物像を比べてまとめよう。",
+        "steps": [
+          "3人の主な政策を調べる",
+          "どんな人物だったか特ちょうを書く",
+          "3人を比較表にまとめる"
+        ],
+        "tip": "「鳴かぬなら〜」のホトトギスの句で覚えよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "地球温暖化をまとめよう",
+        "description": "地球温暖化の原因・影響・対策を科学的な視点でまとめよう。",
+        "steps": [
+          "温暖化の原因を調べる",
+          "日本と世界への影響を書く",
+          "自分にできる対策を考える"
+        ],
+        "tip": "COP（気候変動会議）についても調べよう！"
+      },
+      {
+        "emoji": "🎌",
+        "title": "日本国憲法をまとめよう",
+        "description": "日本国憲法の三大原則と基本的人権の内容を図解でまとめよう。",
+        "steps": [
+          "三大原則の名前と意味を書く",
+          "基本的人権を分類してまとめる",
+          "憲法がなぜ大切か自分の言葉で書く"
+        ],
+        "tip": "「国民主権・平和主義・基本的人権の尊重」の3つ！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "日本の地形の特ちょうをまとめよう",
+        "description": "日本の山地・平野・海岸線の特ちょうと生活との関わりをまとめよう。",
+        "steps": [
+          "日本の主な山地・平野を書く",
+          "地形と産業の関係を調べる",
+          "地図にまとめる"
+        ],
+        "tip": "地形と気候の関係も一緒に調べよう！"
+      }
+    ]
+  },
+  "eigo": {
+    "低": [
+      {
+        "emoji": "🌟",
+        "title": "アルファベットをれんしゅうしよう",
+        "description": "A〜Zをていねいに書いてそれぞれの文字で始まるものの絵も書こう。",
+        "steps": [
+          "A〜Zをノートに書く",
+          "各文字で始まるものを英語で1つ書く",
+          "絵もかき添える"
+        ],
+        "tip": "Apple, Ball, Catなどすでに知っている言葉を使ってみよう！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "英語のうたをおぼえよう",
+        "description": "好きな英語の歌を1曲えらんで歌詞を書きながら覚えよう。",
+        "steps": [
+          "英語の歌を1曲えらぶ",
+          "歌詞を書き写す",
+          "意味を調べてノートにメモする"
+        ],
+        "tip": "ABCの歌やHead Shoulders Knees and Toesから始めよう！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "英語で1〜20まで数えよう",
+        "description": "英語で1から20まで数えてノートに書いて覚えよう。",
+        "steps": [
+          "one〜twentyまでをノートに書く",
+          "声に出して読む練習をする",
+          "数字を書いて横に英語を書く"
+        ],
+        "tip": "11からの数（eleven, twelve...）が少し難しいよ！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "色の英語を覚えよう",
+        "description": "12色の英語を絵と一緒に書いてカラーカードを作ろう。",
+        "steps": [
+          "red, blue, green など12色を書く",
+          "色をぬって絵カードにする",
+          "声に出して覚える"
+        ],
+        "tip": "自分の好きな色の英語から覚えよう！"
+      },
+      {
+        "emoji": "📅",
+        "title": "曜日と月の英語を覚えよう",
+        "description": "月〜日曜と1〜12月を英語でノートに書いて覚えよう。",
+        "steps": [
+          "曜日7つを英語で書く",
+          "月を1〜12月まで英語で書く",
+          "今日の曜日・月を英語で言う"
+        ],
+        "tip": "Today is...の文で言えるようにしよう！"
+      },
+      {
+        "emoji": "🐾",
+        "title": "動物の英語を覚えよう",
+        "description": "好きな動物20種類の英語を調べて絵カードを作ろう。",
+        "steps": [
+          "動物を20種類えらぶ",
+          "英語名を調べる",
+          "絵と英語のカードを作る"
+        ],
+        "tip": "dog, cat, elephant, giraffe...どこまで知ってる？"
+      },
+      {
+        "emoji": "🍎",
+        "title": "食べものの英語を覚えよう",
+        "description": "好きな食べもの15種類の英語を調べてまとめよう。",
+        "steps": [
+          "好きな食べものを15種類書く",
+          "英語名を調べる",
+          "絵と英語でまとめる"
+        ],
+        "tip": "I like...の文も一緒に練習しよう！"
+      },
+      {
+        "emoji": "👦",
+        "title": "体のパーツの英語を覚えよう",
+        "description": "頭・目・鼻など体のパーツの英語を人の絵に書き込もう。",
+        "steps": [
+          "人の絵を書く",
+          "体のパーツを10個書き込む",
+          "英語名を横に書く"
+        ],
+        "tip": "Head, Shoulders, Knees and Toesの歌を歌おう！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "英語で自己紹介をしよう",
+        "description": "名前・好きなもの・嫌いなものを英語で言えるように練習しよう。",
+        "steps": [
+          "My name is...を書く",
+          "I like...を書く",
+          "I don't like...も書く"
+        ],
+        "tip": "鏡の前で練習するとより上手になるよ！"
+      },
+      {
+        "emoji": "🏠",
+        "title": "家の中のものの英語を覚えよう",
+        "description": "部屋・家具・家電など家の中のものを英語でまとめよう。",
+        "steps": [
+          "家の中のものを10個えらぶ",
+          "英語名を調べる",
+          "絵と英語でノートにまとめる"
+        ],
+        "tip": "kitchen, bedroom, bathroomなど部屋の名前も覚えよう！"
+      },
+      {
+        "emoji": "☀️",
+        "title": "天気の英語を覚えよう",
+        "description": "晴れ・雨・曇りなど天気を表す英語を調べて覚えよう。",
+        "steps": [
+          "天気を表す英語を8種類書く",
+          "絵カードを作る",
+          "今日の天気を英語で言う"
+        ],
+        "tip": "It's sunny today!のように文で言おう！"
+      },
+      {
+        "emoji": "🎒",
+        "title": "学校のものの英語を覚えよう",
+        "description": "教科書・えんぴつ・消しゴムなど学校のものの英語をまとめよう。",
+        "steps": [
+          "学校で使うものを10個えらぶ",
+          "英語名を調べる",
+          "絵と英語でまとめる"
+        ],
+        "tip": "This is a pencil.のような文も作ってみよう！"
+      },
+      {
+        "emoji": "👨‍👩‍👧",
+        "title": "家族の英語を覚えよう",
+        "description": "お父さん・お母さん・兄弟などの英語を調べて家族紹介文を書こう。",
+        "steps": [
+          "家族の英語（father, mother等）を書く",
+          "自分の家族を英語で紹介する文を作る",
+          "声に出して練習する"
+        ],
+        "tip": "This is my father.のように紹介してみよう！"
+      },
+      {
+        "emoji": "🕐",
+        "title": "時刻の英語を覚えよう",
+        "description": "1時〜12時の英語の言い方を練習して時計の絵に書き込もう。",
+        "steps": [
+          "1時〜12時の英語を書く",
+          "時計の絵にIt's...o'clock.を書く",
+          "今の時刻を英語で言う"
+        ],
+        "tip": "What time is it? It's three o'clock.を練習しよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "国と言語の英語を覚えよう",
+        "description": "10カ国の国名と公用語を英語で調べてまとめよう。",
+        "steps": [
+          "10カ国をえらぶ",
+          "英語の国名と言語を調べる",
+          "地図に国名を書き込む"
+        ],
+        "tip": "Japan / Japanese, America / Englishのように書こう！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🗣️",
+        "title": "英語で自己紹介カードを作ろう",
+        "description": "名前・好きなもの・得意なことを英語で書いた自己紹介カードを作ろう。",
+        "steps": [
+          "My name is...など基本の文を書く",
+          "好きな食べもの・スポーツを英語で書く",
+          "イラストをつけてデコレーションする"
+        ],
+        "tip": "知らない単語は辞書で調べてOK！"
+      },
+      {
+        "emoji": "🐾",
+        "title": "形容詞を使って絵を説明しよう",
+        "description": "big, small, red, happyなど形容詞を使って絵の説明文を書こう。",
+        "steps": [
+          "形容詞を20個書き出す",
+          "絵を1枚書く",
+          "形容詞を使って絵の説明を書く"
+        ],
+        "tip": "This is a big, red apple.のように組み合わせよう！"
+      },
+      {
+        "emoji": "🗺️",
+        "title": "英語で道案内の会話を作ろう",
+        "description": "Go straight, turn left/rightなど道案内の表現を使った会話を書こう。",
+        "steps": [
+          "道案内の基本表現を調べる",
+          "地図を書く",
+          "会話文を作る"
+        ],
+        "tip": "Excuse me, where is...?から始めよう！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "英語で計算問題を解こう",
+        "description": "英語で書かれた足し算・引き算の文章題を解こう。",
+        "steps": [
+          "英語の計算問題を3問作る",
+          "英語の数字と演算記号を確認する",
+          "答えを英語でも書く"
+        ],
+        "tip": "two plus three equals five のように言えるようにしよう！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "英単語フラッシュカードを作ろう",
+        "description": "教科書から覚えたい単語30語を選んでフラッシュカードを作ろう。",
+        "steps": [
+          "覚えたい単語を30語書き出す",
+          "表に英語・裏に日本語のカードを作る",
+          "毎日10枚ずつ練習する"
+        ],
+        "tip": "絵も一緒に描くと記憶に残りやすいよ！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "英語でなりきり会話を作ろう",
+        "description": "好きなキャラクターになりきって英語での会話文を作ろう。",
+        "steps": [
+          "キャラクターを2人えらぶ",
+          "場面を設定する",
+          "10往復くらいの会話文を書く"
+        ],
+        "tip": "Hello! How are you?から始めよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "英語で国の紹介を書こう",
+        "description": "気になる国を1つえらんで英語で3文以上の紹介文を書こう。",
+        "steps": [
+          "国をえらぶ",
+          "3つの特ちょうを日本語でメモ",
+          "英語の文に書き直す"
+        ],
+        "tip": "This country is famous for...などの表現を使おう！"
+      },
+      {
+        "emoji": "📝",
+        "title": "英語日記を3日書こう",
+        "description": "3日間英語で日記を書く挑戦をしよう。1日3文以上を目標に。",
+        "steps": [
+          "今日のことを日本語でメモ",
+          "英語に直す（辞書OK）",
+          "3日分まとめてノートに書く"
+        ],
+        "tip": "I went to... / I ate...から始めよう！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "英語の歌を歌って覚えよう",
+        "description": "好きな英語の歌を1曲えらんで歌詞を書いて意味を調べよう。",
+        "steps": [
+          "英語の歌を1曲えらぶ",
+          "歌詞を書き写す",
+          "日本語訳を調べる"
+        ],
+        "tip": "聴きながら口ずさむと発音も上手になるよ！"
+      },
+      {
+        "emoji": "🏷️",
+        "title": "家の中に英語ラベルを貼ろう",
+        "description": "家の中のものに英語ラベルを手書きで作って貼ろう。",
+        "steps": [
+          "ラベルを貼るものを10個えらぶ",
+          "英語名をノートに書く",
+          "小さい紙に書いて貼る"
+        ],
+        "tip": "毎日目にすることで自然に覚えられるよ！"
+      },
+      {
+        "emoji": "🗒️",
+        "title": "英語でToDoリストを作ろう",
+        "description": "今日やることを英語でToDoリストにして書いてみよう。",
+        "steps": [
+          "今日やることを5つ書く",
+          "英語に直す",
+          "終わったらチェックを入れる"
+        ],
+        "tip": "Study, eat lunch, clean my roomなど簡単な動詞から！"
+      },
+      {
+        "emoji": "📚",
+        "title": "英語のなぞなぞを作ろう",
+        "description": "英語でなぞなぞを3問作って答えも書こう。",
+        "steps": [
+          "日本語のなぞなぞを3問えらぶ",
+          "英語に直す",
+          "友達や家族に出題する"
+        ],
+        "tip": "What am I? I'm...という形が定番！"
+      },
+      {
+        "emoji": "📅",
+        "title": "英語で曜日・月をおぼえよう",
+        "description": "曜日7つと月12つを英語で書いて使い方の例文を作ろう。",
+        "steps": [
+          "曜日を月〜日まで英語で書く",
+          "月を1〜12月まで英語で書く",
+          "Today is...などの例文を作る"
+        ],
+        "tip": "歌で覚える動画を見ながら練習するのもいいよ！"
+      },
+      {
+        "emoji": "📖",
+        "title": "英語の絵本を読んで感想を書こう",
+        "description": "簡単な英語の絵本を1冊読んであらすじと感想を日本語で書こう。",
+        "steps": [
+          "英語の絵本を1冊えらぶ",
+          "読んでわからない単語を調べる",
+          "あらすじと感想を日本語で書く"
+        ],
+        "tip": "The Very Hungry Caterpillarなど有名な絵本から始めよう！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "アルファベットビンゴを作ろう",
+        "description": "アルファベットビンゴカードを作って家族で遊ぼう。",
+        "steps": [
+          "5×5マスのビンゴカードを作る",
+          "アルファベットをランダムに書き込む",
+          "家族と一緒に遊ぶ"
+        ],
+        "tip": "英語でB-I-N-G-O!と言って楽しもう！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "✉️",
+        "title": "英語で日記を書こう",
+        "description": "今日あったことを英語で3文以上の日記にしよう。",
+        "steps": [
+          "今日のことを日本語でメモする",
+          "英語に直す（辞書OK）",
+          "見直して清書する"
+        ],
+        "tip": "I went to... / I ate... / It was...などシンプルな文から！"
+      },
+      {
+        "emoji": "🌐",
+        "title": "英語で国の紹介をしよう",
+        "description": "気になる国を1つえらんで英語で3つの事実を紹介する文を書こう。",
+        "steps": [
+          "国をえらぶ",
+          "3つの事実を調べる",
+          "英語の文に書き直す"
+        ],
+        "tip": "This country is famous for...などの表現を使おう！"
+      },
+      {
+        "emoji": "📖",
+        "title": "英語のニュース記事を読もう",
+        "description": "NHK World等の簡単な英語ニュースを読んで内容を日本語でまとめよう。",
+        "steps": [
+          "簡単な英語ニュースを1つ読む",
+          "わからない単語を調べる",
+          "内容を日本語でまとめる"
+        ],
+        "tip": "全部わからなくてもOK！キーワードを拾って理解しよう。"
+      },
+      {
+        "emoji": "✍️",
+        "title": "英語でメールを書こう",
+        "description": "友達への誕生日メッセージや先生へのお礼メールを英語で書こう。",
+        "steps": [
+          "書く相手と目的をきめる",
+          "構成（挨拶・本文・締め）を考える",
+          "英語で書く"
+        ],
+        "tip": "Dear.../ Best wishes,...などの定型表現を使おう！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "英語スピーチの原稿を作ろう",
+        "description": "好きなテーマで1〜2分の英語スピーチ原稿を作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "日本語でメモ書きをする",
+          "英語の原稿を書く"
+        ],
+        "tip": "First,.../ Next,.../ Finally,...の構成を使おう！"
+      },
+      {
+        "emoji": "🔤",
+        "title": "英語の接頭辞・接尾辞を調べよう",
+        "description": "un-, re-, -ful, -lessなど接頭辞・接尾辞を調べて単語を増やそう。",
+        "steps": [
+          "接頭辞・接尾辞を5種類調べる",
+          "それぞれの意味を書く",
+          "例単語を3つずつ書く"
+        ],
+        "tip": "un-(否定)、re-(再び)を覚えると語彙が倍増するよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界の英語の多様性を調べよう",
+        "description": "イギリス英語とアメリカ英語の違いを10語まとめよう。",
+        "steps": [
+          "10語を選ぶ",
+          "イギリス式とアメリカ式の違いを書く",
+          "発音の違いも調べる"
+        ],
+        "tip": "color/colour、soccer/footballなど！"
+      },
+      {
+        "emoji": "📚",
+        "title": "英語のことわざを調べよう",
+        "description": "英語のことわざを5つ調べて日本語のことわざと比べよう。",
+        "steps": [
+          "英語のことわざを5つ調べる",
+          "日本語の意味を書く",
+          "似た日本語のことわざと比べる"
+        ],
+        "tip": "Time is money.など有名なものから調べよう！"
+      },
+      {
+        "emoji": "🗣️",
+        "title": "英語でディベートの準備をしよう",
+        "description": "テーマを決め英語で賛成・反対の意見を各3文書こう。",
+        "steps": [
+          "テーマをきめる",
+          "賛成の意見を英語で3文書く",
+          "反対の意見も英語で3文書く"
+        ],
+        "tip": "I agree/disagree because...の表現を使おう！"
+      },
+      {
+        "emoji": "📝",
+        "title": "英語のエッセイを書こう",
+        "description": "My Dream・My Familyなどのテーマで150語程度の英語エッセイを書こう。",
+        "steps": [
+          "テーマをきめる",
+          "序論・本論・結論の構成をメモ",
+          "150語程度で書く"
+        ],
+        "tip": "Introduction, Body, Conclusionの3部構成を意識しよう！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "英語の語源を調べよう",
+        "description": "気になる英単語の語源（ラテン語・ギリシャ語由来など）を5語調べよう。",
+        "steps": [
+          "気になる単語を5語えらぶ",
+          "語源辞典で由来を調べる",
+          "関連する単語も書く"
+        ],
+        "tip": "telephoneはギリシャ語のtele（遠い）+phone（声）だよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "英語のポスターを作ろう",
+        "description": "好きなテーマでA4サイズの英語ポスターを作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "英語でタイトル・説明文を書く",
+          "絵や図を入れてデザインする"
+        ],
+        "tip": "大きなタイトルと短い説明文のバランスを考えよう！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "英検5級・4級の問題に挑戦しよう",
+        "description": "英検の過去問や練習問題を解いて苦手を分析しよう。",
+        "steps": [
+          "英検の練習問題を10問えらぶ",
+          "時間をはかって解く",
+          "まちがえた問題を分析する"
+        ],
+        "tip": "語彙・文法・読解、どれが得意か苦手か確認しよう！"
+      },
+      {
+        "emoji": "📰",
+        "title": "英語の文章を要約しよう",
+        "description": "英語の短い文章を読んで50語以内で要約しよう。",
+        "steps": [
+          "100語程度の英語の文章をえらぶ",
+          "大事なキーワードを抜き出す",
+          "50語以内で要約を書く"
+        ],
+        "tip": "In summary,.../ The main point is...などを使おう！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "英語の劇の脚本を書こう",
+        "description": "好きな物語を英語の短い劇の脚本に書き直そう。",
+        "steps": [
+          "物語をえらぶ",
+          "登場人物とセリフを決める",
+          "英語のセリフを書く"
+        ],
+        "tip": "Stage direction（舞台指示）もEnter, Exitで書こう！"
+      }
+    ]
+  },
+  "zukotai": {
+    "低": [
+      {
+        "emoji": "🎨",
+        "title": "すきな色でぬり絵アートをしよう",
+        "description": "白い紙に模様やすきなものを書いてきれいにぬり絵にしよう。",
+        "steps": [
+          "白い紙に自由に絵を書く",
+          "色えんぴつやクレヨンで好きな色でぬる",
+          "かべにかざってみる"
+        ],
+        "tip": "同じ色でもこく・うすくぬるとかっこよくなるよ！"
+      },
+      {
+        "emoji": "✂️",
+        "title": "折り紙で作品を作ろう",
+        "description": "折り紙を使って動物や花など好きなものを折って説明カードを作ろう。",
+        "steps": [
+          "折りたい作品をきめる",
+          "折り方を調べて折る",
+          "タイトルと説明を書いたカードをつける"
+        ],
+        "tip": "難しければ簡単な折り方から挑戦しよう！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "虹をかいてみよう",
+        "description": "絵の具やクレヨンを使って大きな虹の絵をかいてみよう。",
+        "steps": [
+          "画用紙を用意する",
+          "虹の色（7色）の順番を確認する",
+          "大きく虹をかいて色をぬる"
+        ],
+        "tip": "赤・橙・黄・緑・青・藍・紫の順だよ！"
+      },
+      {
+        "emoji": "🏠",
+        "title": "夢のおうちを絵にしよう",
+        "description": "住みたいおうちの絵を自由に想像してかいてみよう。",
+        "steps": [
+          "どんなおうちにしたいか考える",
+          "外からの絵と中の絵をかく",
+          "こだわりポイントを説明する"
+        ],
+        "tip": "プール・秘密の部屋・スライダーなど想像を自由にふくらませよう！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "押し花でしおりを作ろう",
+        "description": "花や葉っぱを押し花にしてきれいなしおりを作ろう。",
+        "steps": [
+          "花や葉っぱを集める",
+          "重い本にはさんで1週間おく",
+          "台紙にはって透明フィルムを貼る"
+        ],
+        "tip": "ラミネートすると長持ちするよ！"
+      },
+      {
+        "emoji": "✨",
+        "title": "ちぎり絵で作品を作ろう",
+        "description": "折り紙や色紙をちぎって貼り絵の作品を作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "色紙を小さくちぎる",
+          "台紙にはって絵を完成させる"
+        ],
+        "tip": "大きくちぎったり小さくちぎったりで表現が変わるよ！"
+      },
+      {
+        "emoji": "🖍️",
+        "title": "スタンプアートを楽しもう",
+        "description": "野菜や消しゴムを使ってスタンプアートを作ろう。",
+        "steps": [
+          "スタンプに使う素材をえらぶ",
+          "絵の具をつけてスタンプする",
+          "模様を並べてアート作品にする"
+        ],
+        "tip": "レンコンのスタンプは花の模様になって綺麗だよ！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "ペーパーバッグ人形を作ろう",
+        "description": "紙袋や封筒で人形を作ってお話を演じてみよう。",
+        "steps": [
+          "紙袋や大きな封筒を用意する",
+          "顔・体を書く・かざる",
+          "作った人形でお話を作る"
+        ],
+        "tip": "布・毛糸・ボタンを使うとより本格的になるよ！"
+      },
+      {
+        "emoji": "📦",
+        "title": "空き箱でジオラマを作ろう",
+        "description": "空き箱を使って好きな場面のジオラマを作ろう。",
+        "steps": [
+          "テーマをきめる（海・森・まちなど）",
+          "材料をあつめる（砂・木の枝・紙など）",
+          "箱に貼り付けて完成させる"
+        ],
+        "tip": "ライトを入れるとさらに雰囲気が出るよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "星空のアートを作ろう",
+        "description": "黒い画用紙に白や金のクレヨンで星空の絵をかこう。",
+        "steps": [
+          "黒い画用紙を用意する",
+          "白・金・銀のクレヨンで星を書く",
+          "好きな星座を書き込む"
+        ],
+        "tip": "綿棒で絵の具をつけると輝く星が表現できるよ！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "マーブリングアートに挑戦しよう",
+        "description": "水と絵の具を使ってマーブル模様の作品を作ろう。",
+        "steps": [
+          "洗面器に水を入れる",
+          "水面に絵の具をたらす",
+          "画用紙をそっとのせて模様を写す"
+        ],
+        "tip": "竹串でかき混ぜると模様が変わるよ！"
+      },
+      {
+        "emoji": "🎁",
+        "title": "手作りプレゼントを作ろう",
+        "description": "家族や友達へのプレゼントを手作りしよう。",
+        "steps": [
+          "誰に何を作るか考える",
+          "材料を集める",
+          "丁寧に作ってラッピングする"
+        ],
+        "tip": "心を込めて作ったものは、何よりも大切なプレゼント！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "カラフルな模様を書こう",
+        "description": "定規やコンパスを使ってきれいな幾何学模様を書こう。",
+        "steps": [
+          "定規で直線を何本も書く",
+          "コンパスで円をかき加える",
+          "色えんぴつで色をぬる"
+        ],
+        "tip": "同じ形を繰り返すと美しいパターンができるよ！"
+      },
+      {
+        "emoji": "🐾",
+        "title": "動物の絵を書いて飾ろう",
+        "description": "好きな動物を丁寧に書いて額縁も一緒に作ろう。",
+        "steps": [
+          "好きな動物をえらぶ",
+          "図鑑を参考にして書く",
+          "厚紙で額縁を作る"
+        ],
+        "tip": "目を大きく書くとキャラクターっぽくなるよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "ビーズでアクセサリーを作ろう",
+        "description": "ビーズや身近なものでオリジナルアクセサリーを作ろう。",
+        "steps": [
+          "デザインを考える",
+          "材料をあつめる（ビーズ・モール等）",
+          "作って着けてみる"
+        ],
+        "tip": "テグスや毛糸でも作れるよ！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🖼️",
+        "title": "観察スケッチをしよう",
+        "description": "家の中の好きなものを1つえらんでよく観察しながらスケッチしよう。",
+        "steps": [
+          "スケッチするものをえらぶ",
+          "形・影・細部をよく見て鉛筆でスケッチする",
+          "気づいたことを書き添える"
+        ],
+        "tip": "輪郭から書き始めて細かい部分は後から足そう！"
+      },
+      {
+        "emoji": "🏗️",
+        "title": "廃材でオリジナル工作をしよう",
+        "description": "空き箱・ペットボトル・紙など家にある廃材でオリジナル作品を作ろう。",
+        "steps": [
+          "使える廃材をあつめる",
+          "何を作るか考えてスケッチする",
+          "組み立てて完成させる"
+        ],
+        "tip": "作る前に設計図を書くと失敗しにくいよ！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "水彩絵の具で風景を描こう",
+        "description": "窓から見える景色や庭の風景を水彩絵の具で描いてみよう。",
+        "steps": [
+          "描く場所を決める",
+          "鉛筆で下書きをする",
+          "水彩絵の具で色をつける"
+        ],
+        "tip": "遠くのものは薄く・近くのものは濃く描くと立体感が出るよ！"
+      },
+      {
+        "emoji": "📐",
+        "title": "幾何学模様タイルを作ろう",
+        "description": "定規とコンパスを使って正確な幾何学模様のタイルを作ろう。",
+        "steps": [
+          "定規とコンパスを用意する",
+          "正三角形や六角形を正確に書く",
+          "色をぬってタイル模様にする"
+        ],
+        "tip": "イスラムの建築装飾を参考にしよう！"
+      },
+      {
+        "emoji": "✂️",
+        "title": "切り絵に挑戦しよう",
+        "description": "黒い紙を切り抜いてシルエットアートを作ろう。",
+        "steps": [
+          "デザインを決めて下書きする",
+          "はさみで切り抜く",
+          "白い台紙に貼って完成させる"
+        ],
+        "tip": "切り残しの部分が多すぎると崩れてしまうよ！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "葉っぱのルービングをしよう",
+        "description": "葉っぱの上に紙を置いて鉛筆でこすると模様が浮き出るアートを作ろう。",
+        "steps": [
+          "いろいろな形の葉っぱを集める",
+          "葉の上に薄い紙を置く",
+          "鉛筆で優しくこすって模様を出す"
+        ],
+        "tip": "葉の裏を上にするとくっきりした模様になるよ！"
+      },
+      {
+        "emoji": "🖌️",
+        "title": "ステンシルアートを作ろう",
+        "description": "型紙を作ってスポンジで絵の具をたたいて模様を作ろう。",
+        "steps": [
+          "厚紙に形を書いて切り抜く",
+          "画用紙の上に型紙をおく",
+          "スポンジで絵の具をたたく"
+        ],
+        "tip": "型紙をずらして重ねると複雑な模様が作れるよ！"
+      },
+      {
+        "emoji": "🧵",
+        "title": "フェルトで小物を作ろう",
+        "description": "フェルトと針・糸を使ってコースターや小物入れを作ろう。",
+        "steps": [
+          "デザインを考える",
+          "フェルトを切る",
+          "かがり縫いで縫い合わせる"
+        ],
+        "tip": "まつり縫いで縫うと丈夫になるよ！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "紙粘土で立体作品を作ろう",
+        "description": "紙粘土で好きな動物や食べものを立体的に作ろう。",
+        "steps": [
+          "作るものをえらぶ",
+          "紙粘土を形成する",
+          "乾いたら絵の具で色をつける"
+        ],
+        "tip": "細かい部分は竹串を使って形を整えよう！"
+      },
+      {
+        "emoji": "📸",
+        "title": "コラージュ作品を作ろう",
+        "description": "雑誌・新聞などを切り抜いてテーマを決めたコラージュを作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "関連する画像を切り抜く",
+          "バランスよく台紙に貼る"
+        ],
+        "tip": "大きなものと小さなもの、明るい色と暗い色を組み合わせよう！"
+      },
+      {
+        "emoji": "🏺",
+        "title": "土粘土で器を作ろう",
+        "description": "土粘土を使ってコップや皿などの器を作ろう。",
+        "steps": [
+          "土粘土をよくこねる",
+          "形を作る（ひも作りや手びねり）",
+          "乾かして完成させる"
+        ],
+        "tip": "底を平らにすることが安定した器のポイント！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "モノクロームアートに挑戦しよう",
+        "description": "黒・白・グレーだけを使ったモノクロームの絵を描いてみよう。",
+        "steps": [
+          "テーマをえらぶ",
+          "鉛筆の濃淡で明暗を表現する",
+          "完成したら色があるものと見比べる"
+        ],
+        "tip": "陰影（シャドー）を意識すると立体感が出るよ！"
+      },
+      {
+        "emoji": "🔴",
+        "title": "点描画に挑戦しよう",
+        "description": "点だけで絵を描く「点描画」を試してみよう。",
+        "steps": [
+          "シンプルなテーマをえらぶ",
+          "鉛筆または油性ペンで輪郭を書く",
+          "点の密度で明暗を表現する"
+        ],
+        "tip": "点が多いほど暗く、少ないほど明るくなるよ！"
+      },
+      {
+        "emoji": "🏗️",
+        "title": "建築模型を作ろう",
+        "description": "厚紙で有名な建物や自分の家の模型を作ろう。",
+        "steps": [
+          "作る建物をえらぶ",
+          "設計図を書く",
+          "厚紙を切り折り組み立てる"
+        ],
+        "tip": "スコアリング（折り目をつける）すると綺麗に折れるよ！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "流体アートを楽しもう",
+        "description": "絵の具を水で薄めてキャンバスに流して偶然の模様を楽しもう。",
+        "steps": [
+          "数色の絵の具を水で薄める",
+          "画用紙の上に流す",
+          "傾けて色を混ぜる"
+        ],
+        "tip": "シリコンオイルを加えるとセルが現れるよ！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "🎭",
+        "title": "遠近法で絵を描こう",
+        "description": "消失点を使った遠近法で建物や道のある風景を描こう。",
+        "steps": [
+          "消失点を1つ紙に書く",
+          "そこから線を引いて建物の形を作る",
+          "細部をかき加えてかげをつける"
+        ],
+        "tip": "定規を使うと線がまっすぐに引けるよ！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "色の混色実験をしよう",
+        "description": "絵の具の三原色を混ぜていろいろな色を作り色見本ノートを作ろう。",
+        "steps": [
+          "赤・青・黄の絵の具を用意する",
+          "2色ずつ少しずつ混ぜる",
+          "できた色を紙にぬって色見本ノートにする"
+        ],
+        "tip": "混ぜる量を変えると同じ組み合わせでも違う色になるよ！"
+      },
+      {
+        "emoji": "🖼️",
+        "title": "模写に挑戦しよう",
+        "description": "好きな絵画や写真を見ながら丁寧に模写してみよう。",
+        "steps": [
+          "模写する絵・写真をえらぶ",
+          "全体の構図をつかんで下書きする",
+          "色をつけて仕上げる"
+        ],
+        "tip": "細部より全体のバランスを先に確認しよう！"
+      },
+      {
+        "emoji": "📐",
+        "title": "デザイン画を書いてみよう",
+        "description": "自分だけのキャラクターデザインや商品デザインを考えて書こう。",
+        "steps": [
+          "デザインのコンセプトを決める",
+          "スケッチを何枚も書く",
+          "最もよいものを清書する"
+        ],
+        "tip": "アイデアはとにかく量を出すのが大事！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "アニメーションの原理を体験しよう",
+        "description": "パラパラマンガを作って動きの原理を理解しよう。",
+        "steps": [
+          "動かしたいものを決める",
+          "20枚以上のコマを少しずつ変えて書く",
+          "パラパラめくって動きを確認する"
+        ],
+        "tip": "動きを小さく分解するのがアニメーションの基本！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "ボタニカルアートを描こう",
+        "description": "植物を科学的に観察しながら美しくスケッチしよう。",
+        "steps": [
+          "植物を1つ選んで観察する",
+          "葉・茎・根・花の形を丁寧に書く",
+          "植物画らしくデッサンする"
+        ],
+        "tip": "ルーペで細部を観察すると精密な絵が描けるよ！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "グラデーションの技法を練習しよう",
+        "description": "水彩絵の具で美しいグラデーションを作る練習をしよう。",
+        "steps": [
+          "2色を選ぶ",
+          "水の量を調節しながら少しずつ混ぜる",
+          "紙全体にグラデーションを表現する"
+        ],
+        "tip": "紙を濡らしてから塗るウェットオンウェット技法も試してみよう！"
+      },
+      {
+        "emoji": "🏗️",
+        "title": "立体文字をデザインしよう",
+        "description": "自分の名前や好きな言葉を立体的に見える文字にデザインしよう。",
+        "steps": [
+          "文字をえらぶ",
+          "太い文字を書いて立体感を加える",
+          "陰影を入れて3Dに見せる"
+        ],
+        "tip": "光の方向を決めてから陰影をつけよう！"
+      },
+      {
+        "emoji": "📸",
+        "title": "写真構図の研究をしよう",
+        "description": "三分割法など写真の構図のルールを調べて実際に撮影してみよう。",
+        "steps": [
+          "構図のルール（三分割法等）を調べる",
+          "ルールを意識して5枚撮影する",
+          "構図の違いを比べる"
+        ],
+        "tip": "スマホのカメラグリッドを使うと三分割法が練習しやすいよ！"
+      },
+      {
+        "emoji": "🌊",
+        "title": "印象派の技法を試してみよう",
+        "description": "モネ・ルノワールなど印象派の画家の技法を調べて描いてみよう。",
+        "steps": [
+          "印象派の画家を1人調べる",
+          "その人の代表作の技法を分析する",
+          "同じ技法で身近な風景を描く"
+        ],
+        "tip": "細かい筆触（タッチ）で光の変化を表現するのが特ちょう！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "切り絵シルエットポスターを作ろう",
+        "description": "テーマを決めてシルエットを切り抜いたポスターを作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "シルエットを下書きして切り抜く",
+          "背景を作って組み合わせる"
+        ],
+        "tip": "シルエットは黒以外の色でも格好いいよ！"
+      },
+      {
+        "emoji": "📦",
+        "title": "パッケージデザインに挑戦しよう",
+        "description": "好きな商品のパッケージをリデザインしてみよう。",
+        "steps": [
+          "デザインし直す商品をえらぶ",
+          "コンセプトと対象ユーザーを考える",
+          "新しいデザインを描く"
+        ],
+        "tip": "色・フォント・イラストでブランドイメージが変わるよ！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "色彩理論を学ぼう",
+        "description": "色相・明度・彩度と補色の関係を色環で整理しよう。",
+        "steps": [
+          "色相環を書く",
+          "補色（反対の色）を書き込む",
+          "明度と彩度の違いを図にまとめる"
+        ],
+        "tip": "補色を組み合わせると互いの色を引き立てあうよ！"
+      },
+      {
+        "emoji": "🖼️",
+        "title": "自画像を描いてみよう",
+        "description": "鏡を見ながら自画像を丁寧に描いてみよう。",
+        "steps": [
+          "鏡の前に座る",
+          "顔の各パーツの位置を観察する",
+          "鉛筆で下書きし絵の具で仕上げる"
+        ],
+        "tip": "顔の中心（目は顔の上下の中間あたり）を意識しよう！"
+      },
+      {
+        "emoji": "🎨",
+        "title": "オリジナルロゴを作ろう",
+        "description": "自分の名前や好きなものをもとにオリジナルロゴをデザインしよう。",
+        "steps": [
+          "コンセプトを決める",
+          "アイデアをたくさんスケッチする",
+          "最終デザインを清書する"
+        ],
+        "tip": "シンプルで覚えやすいデザインが良いロゴの条件！"
+      }
+    ]
+  },
+  "ongaku": {
+    "低": [
+      {
+        "emoji": "🎵",
+        "title": "リズム打ちをれんしゅうしよう",
+        "description": "好きな歌に合わせて手をたたいたりリズムを体で表現しよう。",
+        "steps": [
+          "好きな歌を1つえらぶ",
+          "歌いながら手でリズムをたたく",
+          "テーブルをドラムがわりに叩いてみる"
+        ],
+        "tip": "タン・タタなどリズムを言葉にすると覚えやすいよ！"
+      },
+      {
+        "emoji": "🎶",
+        "title": "音楽記号を調べてまとめよう",
+        "description": "音楽の教科書に出てくる記号を3つえらんで意味と使い方をまとめよう。",
+        "steps": [
+          "教科書から記号を3つえらぶ",
+          "記号の名前と意味を書く",
+          "どんな時に使うか例を書く"
+        ],
+        "tip": "フォルテ・ピアノ・クレッシェンドから始めよう！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "好きな歌を練習しよう",
+        "description": "好きな歌を1曲えらんで歌詞を書いて気持ちを込めて歌おう。",
+        "steps": [
+          "好きな歌を1曲えらぶ",
+          "歌詞を全部書き写す",
+          "鏡の前で歌う練習をする"
+        ],
+        "tip": "息つぎの場所に印をつけると上手に歌えるよ！"
+      },
+      {
+        "emoji": "🥁",
+        "title": "体を使ってリズムをたたこう",
+        "description": "「タン・ウン・タタ・タン」などのリズムパターンを作って叩こう。",
+        "steps": [
+          "タン（4分音符）とウン（休み）を説明する",
+          "簡単なリズムパターンを4つ作る",
+          "体（手・足・膝）を使って叩く"
+        ],
+        "tip": "ゆっくりから始めて少しずつ速くしよう！"
+      },
+      {
+        "emoji": "🎹",
+        "title": "鍵盤の音の名前を覚えよう",
+        "description": "ピアノや鍵盤ハーモニカのドレミファソラシドの位置を覚えよう。",
+        "steps": [
+          "鍵盤の絵を書く",
+          "ドレミの位置を書き込む",
+          "「かえるの合唱」などを弾いてみる"
+        ],
+        "tip": "黒い鍵盤（黒鍵）の位置を目印にしよう！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "音の高さを比べよう",
+        "description": "身の回りのものを叩いて高い音・低い音を比べてまとめよう。",
+        "steps": [
+          "叩けるものを5種類用意する",
+          "高い音・低い音・中くらいを分類する",
+          "なぜ違いがあるか考える"
+        ],
+        "tip": "大きなものは低い音、小さなものは高い音が出やすいよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "わらべうたを調べてみよう",
+        "description": "「はないちもんめ」など昔から歌われているわらべうたを調べよう。",
+        "steps": [
+          "知っているわらべうたを書く",
+          "歌詞の意味を調べる",
+          "身ぶりをつけて歌ってみる"
+        ],
+        "tip": "地域によって歌詞が違うわらべうたもあるよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界の子どもの歌を調べよう",
+        "description": "外国の子どもの歌を1曲調べて歌詞の意味をまとめよう。",
+        "steps": [
+          "外国の子どもの歌を1曲えらぶ",
+          "歌詞を書き写す",
+          "日本語の意味を調べる"
+        ],
+        "tip": "「ロンドン橋」「アマリリス」など知っている歌から調べよう！"
+      },
+      {
+        "emoji": "📢",
+        "title": "音の大きさを記号で覚えよう",
+        "description": "p・mp・mf・f・ffなど音の強弱記号を表にまとめよう。",
+        "steps": [
+          "強弱記号を全部書き出す",
+          "記号の読み方と意味を書く",
+          "どのくらいの大きさか声で試す"
+        ],
+        "tip": "pはピアノ（弱く）、fはフォルテ（強く）だよ！"
+      },
+      {
+        "emoji": "🎻",
+        "title": "楽器の種類を調べよう",
+        "description": "弦楽器・管楽器・打楽器・鍵盤楽器に分けて5種類ずつまとめよう。",
+        "steps": [
+          "4種類の楽器グループを書く",
+          "各グループの楽器を5つ書く",
+          "好きな楽器のスケッチをかく"
+        ],
+        "tip": "オーケストラにどんな楽器があるか調べてみよう！"
+      },
+      {
+        "emoji": "🎼",
+        "title": "ドレミの音符を書いてみよう",
+        "description": "五線紙にドレミファソの音符を書く練習をしよう。",
+        "steps": [
+          "五線紙を書く",
+          "音符の形（たまごの形）を練習する",
+          "ドレミファソを五線に書く"
+        ],
+        "tip": "音符の頭は五線の線・間に書くよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "自分だけのリズム曲を作ろう",
+        "description": "2小節のオリジナルリズムを作って体で演奏しよう。",
+        "steps": [
+          "タン・タタ・ウンを組み合わせてリズムを作る",
+          "2小節分書く",
+          "手と足で演奏する"
+        ],
+        "tip": "お気に入りのリズムができたら家族に聴かせよう！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "音の長さを調べよう",
+        "description": "全音符・2分音符・4分音符・8分音符の長さの関係を図でまとめよう。",
+        "steps": [
+          "4種類の音符を書く",
+          "長さの比（1:1/2:1/4:1/8）を書く",
+          "図でわかりやすくまとめる"
+        ],
+        "tip": "全音符を1個のケーキに例えると考えやすいよ！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "季節の歌をまとめよう",
+        "description": "春・夏・秋・冬の季節の歌を各1曲えらんでまとめよう。",
+        "steps": [
+          "4つの季節の歌を各1曲えらぶ",
+          "歌詞の一部を書き写す",
+          "その季節らしい歌詞のポイントを書く"
+        ],
+        "tip": "「春の小川」「夏は来ぬ」など昔の歌も調べてみよう！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "カラオケで採点に挑戦しよう",
+        "description": "家のカラオケや動画サービスで練習して点数アップを目指そう。",
+        "steps": [
+          "好きな曲を1曲えらぶ",
+          "歌詞を覚える",
+          "採点機能を使って練習する"
+        ],
+        "tip": "音程・リズム・声量、どれを特に意識するか決めよう！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🎸",
+        "title": "好きな曲の楽譜を読んでみよう",
+        "description": "リコーダーや鍵盤の楽譜を1曲えらんで音名を書き込んでみよう。",
+        "steps": [
+          "楽譜を1曲えらぶ",
+          "ドレミで音名を楽譜の上に書く",
+          "指使いを確認しながらゆっくり演奏する"
+        ],
+        "tip": "まずゆっくり確実に音を出せるようになってからテンポを上げよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界の楽器を調べよう",
+        "description": "世界のさまざまな楽器を3つ調べて特ちょうと産地をまとめよう。",
+        "steps": [
+          "気になる楽器を3つえらぶ",
+          "産地・形・どんな音か調べる",
+          "絵とともにノートにまとめる"
+        ],
+        "tip": "動画で実際の音を聴いてみると楽しいよ！"
+      },
+      {
+        "emoji": "🎼",
+        "title": "音楽の三要素を調べよう",
+        "description": "メロディー・リズム・ハーモニーの意味と違いをまとめよう。",
+        "steps": [
+          "3要素の定義を調べる",
+          "それぞれの例を曲名で書く",
+          "3つがどう組み合わさるか説明する"
+        ],
+        "tip": "好きな曲でそれぞれの要素を聴き分けてみよう！"
+      },
+      {
+        "emoji": "🎹",
+        "title": "長調と短調の違いをまとめよう",
+        "description": "ハ長調とイ短調の音階を書いて聴こえ方の違いをまとめよう。",
+        "steps": [
+          "長調の音階（ドレミファソラシド）を書く",
+          "短調の音階を書く",
+          "実際に演奏して違いを確かめる"
+        ],
+        "tip": "長調は明るく・短調は暗く聴こえることが多いよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "オーケストラの楽器を調べよう",
+        "description": "オーケストラの4つのセクション（弦・管・打・鍵盤）をまとめよう。",
+        "steps": [
+          "4つのセクションを書く",
+          "各セクションの楽器を3つずつ書く",
+          "配置（座る場所）も図にする"
+        ],
+        "tip": "オーケストラの演奏動画を見るとより理解が深まるよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "作曲家の時代を調べよう",
+        "description": "バッハ・ベートーヴェン・モーツァルトの時代と音楽の特ちょうを比べよう。",
+        "steps": [
+          "3人の時代を年表に書く",
+          "それぞれの音楽の特ちょうを書く",
+          "代表曲を1曲ずつ書く"
+        ],
+        "tip": "バロック→古典→ロマン派の順に時代が進むよ！"
+      },
+      {
+        "emoji": "🥁",
+        "title": "ドラムのリズムパターンを作ろう",
+        "description": "バスドラム・スネア・ハイハットの3つを使ったリズムを作ろう。",
+        "steps": [
+          "3つの楽器の音を書き分ける",
+          "4拍子のリズムパターンを作る",
+          "手足で演奏してみる"
+        ],
+        "tip": "ポップスの基本リズム（ドン・タン・ドドタン）から始めよう！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "発声練習をしてみよう",
+        "description": "腹式呼吸・共鳴・発音を意識した発声練習を30分してみよう。",
+        "steps": [
+          "腹式呼吸の練習（お腹が動くか確認）",
+          "母音（アイウエオ）の発声練習",
+          "好きな曲を丁寧に歌う"
+        ],
+        "tip": "鼻の奥を響かせるイメージで歌うと声量が上がるよ！"
+      },
+      {
+        "emoji": "🌸",
+        "title": "日本の伝統音楽を調べよう",
+        "description": "雅楽・能・民謡など日本の伝統音楽を3つ調べよう。",
+        "steps": [
+          "3種類の日本伝統音楽をえらぶ",
+          "使う楽器・どんな場で演奏するかを調べる",
+          "現代の音楽との違いを書く"
+        ],
+        "tip": "三味線・琴・尺八など和楽器の音も動画で聴いてみよう！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "コードを調べよう",
+        "description": "ドミソ（Cコード）など和音の仕組みを調べて簡単なコードをまとめよう。",
+        "steps": [
+          "ドミソの和音を鍵盤で確かめる",
+          "Cコード・Fコード・Gコードを調べる",
+          "3つのコードを使った曲を調べる"
+        ],
+        "tip": "この3つのコードだけで弾ける曲がたくさんあるよ！"
+      },
+      {
+        "emoji": "📖",
+        "title": "音楽の歴史を年表にまとめよう",
+        "description": "中世〜現代の音楽の歴史を年表でわかりやすくまとめよう。",
+        "steps": [
+          "中世・ルネサンス・バロック等の時代を書く",
+          "各時代の特ちょうと有名な作曲家を書く",
+          "年表に整理する"
+        ],
+        "tip": "各時代で楽器も変わっていったよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "ポップミュージックの歴史を調べよう",
+        "description": "ロック・ジャズ・ポップスなど音楽ジャンルの歴史を調べよう。",
+        "steps": [
+          "3つのジャンルをえらぶ",
+          "それぞれの起源と特ちょうを調べる",
+          "有名なアーティストを書く"
+        ],
+        "tip": "音楽の歴史はアメリカ・イギリスの文化と深く関係しているよ！"
+      },
+      {
+        "emoji": "📻",
+        "title": "音楽の形式を調べよう",
+        "description": "ABA形式・ロンド形式など音楽の構成について調べよう。",
+        "steps": [
+          "代表的な音楽形式を3つ調べる",
+          "それぞれの特ちょうを書く",
+          "知っている曲に当てはめてみる"
+        ],
+        "tip": "起承転結のように音楽にも構成があるんだね！"
+      },
+      {
+        "emoji": "🎼",
+        "title": "ソルフェージュ練習をしよう",
+        "description": "楽譜を見てドレミで歌う「視唱」の練習を30分してみよう。",
+        "steps": [
+          "簡単な楽譜を1つえらぶ",
+          "リズムだけ先に叩く",
+          "音程をつけてドレミで歌う"
+        ],
+        "tip": "正確に読めると楽器演奏がぐんと上達するよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "フォルテとピアノを使って演奏しよう",
+        "description": "強弱をつけた演奏の練習をして表現力を高めよう。",
+        "steps": [
+          "好きな曲を1つえらぶ",
+          "強弱記号のある箇所を確認する",
+          "意識して強弱をつけて演奏する"
+        ],
+        "tip": "同じ音量の演奏より強弱をつけると感情が伝わるよ！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "🎼",
+        "title": "作曲に挑戦しよう",
+        "description": "8小節のシンプルなメロディーを五線紙に書いて演奏してみよう。",
+        "steps": [
+          "ドレミファソの5つの音で考える",
+          "8小節のリズムをきめる",
+          "五線紙に音符を書いてリコーダーで演奏する"
+        ],
+        "tip": "好きな曲のリズムをお手本にするのもOK！"
+      },
+      {
+        "emoji": "📖",
+        "title": "作曲家を調べてレポートを書こう",
+        "description": "好きな作曲家を1人えらんで生涯と代表作をA4一枚にまとめよう。",
+        "steps": [
+          "作曲家をえらぶ",
+          "生まれた年・活躍した時代・代表作を調べる",
+          "A4一枚に図と文でまとめる"
+        ],
+        "tip": "その人の曲を聴きながらまとめると気分が上がるよ！"
+      },
+      {
+        "emoji": "🎹",
+        "title": "コードで伴奏を付けよう",
+        "description": "簡単な曲にCFGのコードで伴奏をつける練習をしよう。",
+        "steps": [
+          "C・F・Gのコードを鍵盤で覚える",
+          "曲のコード進行を調べる",
+          "メロディーに合わせてコードを弾く"
+        ],
+        "tip": "左手でコード・右手でメロディーに挑戦しよう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "ジャズの歴史と特ちょうをまとめよう",
+        "description": "ジャズの起源・発展・代表的なアーティストをノートにまとめよう。",
+        "steps": [
+          "ジャズの起源（米南部）を調べる",
+          "スウィング・ビバップなど時代を調べる",
+          "マイルス・デイヴィスなど代表者を書く"
+        ],
+        "tip": "実際にジャズを聴きながらまとめると理解が深まるよ！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "アカペラの仕組みを調べよう",
+        "description": "アカペラで使われる声部（ソプラノ・アルト・テノール・バス）を調べよう。",
+        "steps": [
+          "4つの声部の名前と音域を書く",
+          "各声部の役割を調べる",
+          "好きな曲のアカペラバージョンを聴く"
+        ],
+        "tip": "ハーモニーの仕組みを理解するとコーラスがうまくなるよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "日本の音楽の特ちょうを分析しよう",
+        "description": "日本の伝統音楽（雅楽・邦楽）と西洋音楽の構造の違いを比べよう。",
+        "steps": [
+          "日本の音階（ヨナ抜き音階等）を調べる",
+          "西洋の長・短音階と比べる",
+          "実際に弾き比べてみる"
+        ],
+        "tip": "「さくら」は日本らしい音階でできているよ！"
+      },
+      {
+        "emoji": "🎼",
+        "title": "名曲の分析をしよう",
+        "description": "好きなクラシック曲を1曲えらんで構成・調・使われる楽器を分析しよう。",
+        "steps": [
+          "曲を1つえらんで何度も聴く",
+          "曲の構成（A部・B部等）を書く",
+          "使われている楽器を書き出す"
+        ],
+        "tip": "楽譜があればさらに詳しく分析できるよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "モーツァルトvsベートーヴェンを比べよう",
+        "description": "2人の作曲家の生涯・スタイル・代表作を比較表でまとめよう。",
+        "steps": [
+          "2人の生涯の主な出来事を書く",
+          "音楽スタイルの違いを書く",
+          "代表曲を各3曲ずつ書く"
+        ],
+        "tip": "2人とも古典派の時代に活躍したが、スタイルはかなり違うよ！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "和声（ハーモニー）を学ぼう",
+        "description": "協和音・不協和音の違いと和音の種類を調べてまとめよう。",
+        "steps": [
+          "協和音と不協和音の定義を書く",
+          "主要三和音（I・IV・V）を調べる",
+          "実際に鍵盤で弾いて確かめる"
+        ],
+        "tip": "協和音は安定感、不協和音は緊張感を表すよ！"
+      },
+      {
+        "emoji": "🎤",
+        "title": "声楽の種類を調べよう",
+        "description": "オペラのソプラノ・メゾソプラノ・テノール・バリトン・バスを調べよう。",
+        "steps": [
+          "5つの声域を音域とともに書く",
+          "有名な歌い手を1人ずつ書く",
+          "それぞれの声域の曲を1曲ずつ聴く"
+        ],
+        "tip": "日本語のオペラ「夕鶴」などもあるよ！"
+      },
+      {
+        "emoji": "📝",
+        "title": "音楽批評を書いてみよう",
+        "description": "聴いた曲について300字以上の音楽批評を書いてみよう。",
+        "steps": [
+          "批評する曲を1曲えらんで聴く",
+          "使われている技法・印象を書く",
+          "300字以上の批評文を書く"
+        ],
+        "tip": "感情だけでなく技法的な観点も入れると批評らしくなるよ！"
+      },
+      {
+        "emoji": "🎶",
+        "title": "映画音楽の役割を分析しよう",
+        "description": "好きな映画の音楽がどのように場面を盛り上げているか分析しよう。",
+        "steps": [
+          "好きな映画を1つえらぶ",
+          "印象的な音楽シーンを3つ書く",
+          "音楽が気持ちにどう影響するか分析する"
+        ],
+        "tip": "音なしで同じ場面を見て比べると音楽の力がわかるよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "民族音楽を調べよう",
+        "description": "世界の5つの地域の民族音楽の特ちょうと楽器をまとめよう。",
+        "steps": [
+          "5つの地域をえらぶ",
+          "それぞれの音楽の特ちょうを調べる",
+          "使われる楽器を書く"
+        ],
+        "tip": "アフリカ・インド・中東・ラテン・東アジアから選ぼう！"
+      },
+      {
+        "emoji": "📻",
+        "title": "ミュージカルの歴史を調べよう",
+        "description": "ミュージカルの誕生から現代の作品まで歴史をまとめよう。",
+        "steps": [
+          "ミュージカルの起源を調べる",
+          "代表的な作品を5つ書く",
+          "日本のミュージカルも調べる"
+        ],
+        "tip": "四季・東宝ミュージカルなど日本の舞台も調べよう！"
+      },
+      {
+        "emoji": "🎵",
+        "title": "テンポの変化を表現しよう",
+        "description": "ritardandoとaccelerandoを使って曲の表現を変える練習をしよう。",
+        "steps": [
+          "ritardando（だんだん遅く）を練習する",
+          "accelerando（だんだん速く）を練習する",
+          "曲の中で自然に使えるか試す"
+        ],
+        "tip": "テンポの変化が感情を大きく揺さぶるよ！"
+      }
+    ]
+  },
+  "nandemo": {
+    "低": [
+      {
+        "emoji": "🎲",
+        "title": "家族インタビューをしよう",
+        "description": "家族に「子どもの頃の夢」「好きな食べもの」などをインタビューして記録しよう。",
+        "steps": [
+          "質問を3つ考える",
+          "家族1人にインタビューする",
+          "答えをノートにまとめる"
+        ],
+        "tip": "メモをとりながら話を聞くと書きやすいよ！"
+      },
+      {
+        "emoji": "🔍",
+        "title": "家の中の「なぜ？」を調べよう",
+        "description": "家の中で気になること・ふしぎなことを1つ見つけて調べてまとめよう。",
+        "steps": [
+          "気になることを1つ書く",
+          "本や図鑑で調べる",
+          "わかったことをノートにまとめる"
+        ],
+        "tip": "「なぜ空は青いの？」など身近なギモンをテーマにしよう！"
+      },
+      {
+        "emoji": "🦁",
+        "title": "好きな動物の百科事典を作ろう",
+        "description": "好きな動物を1つえらんで生態・特ちょう・生息地をまとめよう。",
+        "steps": [
+          "動物を1つえらぶ",
+          "体の特ちょう・食べもの・住む場所を調べる",
+          "絵と文でオリジナル百科事典にする"
+        ],
+        "tip": "絶滅危惧種についても調べてみよう！"
+      },
+      {
+        "emoji": "📅",
+        "title": "今日の記録をつけよう",
+        "description": "時間・食べもの・天気・気持ちを記録する「くらしの日記」をつけよう。",
+        "steps": [
+          "記録する項目をきめる",
+          "1日の出来事を書く",
+          "続けてみよう（3日分）"
+        ],
+        "tip": "後で見返すと成長がわかるよ！"
+      },
+      {
+        "emoji": "🌱",
+        "title": "種から育てよう",
+        "description": "植物の種を植えて芽が出るまで観察日記をつけよう。",
+        "steps": [
+          "種を1種類用意する（ラディッシュなど）",
+          "植えて水をやる",
+          "毎日観察して絵と文で記録する"
+        ],
+        "tip": "同じ日に種をまいても発芽する日が違うかもしれないよ！"
+      },
+      {
+        "emoji": "📚",
+        "title": "おすすめ本リストを作ろう",
+        "description": "今まで読んだ本の中からおすすめを5冊えらんで紹介カードを作ろう。",
+        "steps": [
+          "おすすめ本を5冊えらぶ",
+          "タイトル・あらすじ・おすすめポイントを書く",
+          "絵もかえてかわいいカードにする"
+        ],
+        "tip": "友達に渡すつもりで書くと読みたくなる紹介文が書けるよ！"
+      },
+      {
+        "emoji": "🎮",
+        "title": "オリジナルゲームを考えよう",
+        "description": "紙とえんぴつだけでできるオリジナルゲームを考えて遊んでみよう。",
+        "steps": [
+          "ゲームのルールを考える",
+          "ゲームに必要なものを作る（サイコロ・カード等）",
+          "家族と一緒に遊んでみる"
+        ],
+        "tip": "シンプルなルールが一番楽しいよ！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "日本のひみつを調べよう",
+        "description": "日本の人口・面積・有名なことなど面白い事実を5つまとめよう。",
+        "steps": [
+          "日本の基本情報を5つさがす",
+          "図鑑やインターネットで調べる",
+          "ノートにまとめる"
+        ],
+        "tip": "世界と比べてどのくらいの大きさか考えよう！"
+      },
+      {
+        "emoji": "📰",
+        "title": "家族新聞を作ろう",
+        "description": "今週あった家族の出来事をまとめた「家族新聞」を作ろう。",
+        "steps": [
+          "今週の出来事を3つえらぶ",
+          "記事・見出しを書く",
+          "写真のかわりに絵をかく"
+        ],
+        "tip": "家族に配るともっと喜ばれるよ！"
+      },
+      {
+        "emoji": "🌈",
+        "title": "虹の七色を調べよう",
+        "description": "虹の7色の名前と順番、なぜ虹ができるかを調べよう。",
+        "steps": [
+          "虹の7色を順番に書く",
+          "虹ができる仕組みを調べる",
+          "ノートに図と文でまとめる"
+        ],
+        "tip": "赤・橙・黄・緑・青・藍・紫の順だよ！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "一週間の目標を立てよう",
+        "description": "今週チャレンジしたいことを5つ決めて毎日チェックしよう。",
+        "steps": [
+          "5つの目標を書く",
+          "毎日実行できたかチェックする",
+          "週末に振り返りを書く"
+        ],
+        "tip": "達成できた目標には星をつけよう！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "家族のいいところを発表しよう",
+        "description": "家族1人ずつのいいところを3つずつ考えて発表カードを作ろう。",
+        "steps": [
+          "家族全員の名前を書く",
+          "それぞれのいいところを3つ書く",
+          "かわいいカードにして渡す"
+        ],
+        "tip": "具体的な場面（〇〇の時に助けてくれた）を書くとより伝わるよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "自分の宝物マップを作ろう",
+        "description": "家の中の宝物（思い出のもの・大切なもの）を地図にして紹介しよう。",
+        "steps": [
+          "部屋の地図を書く",
+          "宝物の場所に印をつける",
+          "それぞれの宝物を紹介する文を書く"
+        ],
+        "tip": "なぜそれが宝物なのか理由も書いてみよう！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "葉っぱのふしぎを調べよう",
+        "description": "葉っぱの形・色・サイズをいろいろ集めて比べてまとめよう。",
+        "steps": [
+          "5種類の葉っぱを集める",
+          "形・色・サイズを比べる",
+          "葉脈のパターンも観察する"
+        ],
+        "tip": "葉の形には意味があるよ！なぜ違う形なのか考えよう。"
+      },
+      {
+        "emoji": "🌍",
+        "title": "地球のひみつを調べよう",
+        "description": "地球の大きさ・重さ・構造など面白い事実を5つ調べてまとめよう。",
+        "steps": [
+          "地球の面白い事実を5つさがす",
+          "図鑑やインターネットで調べる",
+          "絵と文でノートにまとめる"
+        ],
+        "tip": "地球は1秒間に何km動いているかを調べてみよう！"
+      }
+    ],
+    "中": [
+      {
+        "emoji": "🧪",
+        "title": "家でできる科学マジックをやろう",
+        "description": "家にあるもので科学マジック（実験）を1つやってなぜそうなるか調べよう。",
+        "steps": [
+          "やる実験をきめる（水と油・静電気など）",
+          "実験して結果を記録する",
+          "なぜそうなるか調べて書く"
+        ],
+        "tip": "重曹と酢で泡がでる実験は安全でおすすめ！"
+      },
+      {
+        "emoji": "🌏",
+        "title": "SDGsを調べよう",
+        "description": "SDGsの17のゴールから気になるものを1つえらんで内容と自分にできることをまとめよう。",
+        "steps": [
+          "17のゴールから1つえらぶ",
+          "その問題について調べる",
+          "自分にできることを3つ書く"
+        ],
+        "tip": "ゴールのマークをカラーでぬりながら覚えよう！"
+      },
+      {
+        "emoji": "📊",
+        "title": "アンケートを取ってまとめよう",
+        "description": "テーマを決めて家族にアンケートをとり結果をグラフにまとめよう。",
+        "steps": [
+          "テーマをきめる（好きな食べもの等）",
+          "質問を3〜5個作る",
+          "家族に答えてもらいグラフにまとめる"
+        ],
+        "tip": "棒グラフ・円グラフ・折れ線グラフを使い分けよう！"
+      },
+      {
+        "emoji": "🧩",
+        "title": "パズルを自作してみよう",
+        "description": "絵を描いてから切り抜いてオリジナルジグソーパズルを作ろう。",
+        "steps": [
+          "画用紙に好きな絵を描く",
+          "裏に格子線を書く",
+          "格子に沿って切り抜いてパズルにする"
+        ],
+        "tip": "ピース数が多いほど難しいよ！"
+      },
+      {
+        "emoji": "📰",
+        "title": "ミニ新聞を作ろう",
+        "description": "気になるニュースや学校の出来事を題材にA4一枚のミニ新聞を作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "記事・見出し・写真（絵）を考える",
+          "レイアウトを考えて書く"
+        ],
+        "tip": "見出しは大きく・わかりやすく！"
+      },
+      {
+        "emoji": "🧠",
+        "title": "記憶術を研究しよう",
+        "description": "語呂合わせ・イメージ記憶法など記憶術を3種類調べて試してみよう。",
+        "steps": [
+          "3種類の記憶術を調べる",
+          "それぞれで覚えたいことを覚えてみる",
+          "どれが一番覚えやすいか比べる"
+        ],
+        "tip": "「水金地火木土天海」のような語呂合わせは有名！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "世界の食べ物を調べよう",
+        "description": "5つの国の代表的な料理を調べてノートにまとめよう。",
+        "steps": [
+          "5カ国をえらぶ",
+          "各国の代表料理を1つ調べる",
+          "材料・食べ方・歴史を書く"
+        ],
+        "tip": "食から文化が見えてくるよ！"
+      },
+      {
+        "emoji": "🔬",
+        "title": "身の回りのテクノロジーを調べよう",
+        "description": "スマホ・電子レンジ・LED照明など身近な技術の仕組みを1つ調べよう。",
+        "steps": [
+          "調べるテクノロジーを1つきめる",
+          "仕組みを図鑑やネットで調べる",
+          "わかりやすく図解でまとめる"
+        ],
+        "tip": "「なんで動くの？」という素朴な疑問が大発明のきっかけになるよ！"
+      },
+      {
+        "emoji": "📚",
+        "title": "気になる職業を調べよう",
+        "description": "将来なりたい職業または気になる職業を3つ調べてまとめよう。",
+        "steps": [
+          "3つの職業をえらぶ",
+          "仕事内容・必要な資格を調べる",
+          "その職業のいいところ・大変なところを書く"
+        ],
+        "tip": "保護者や周りの大人の仕事も調べてみよう！"
+      },
+      {
+        "emoji": "🌱",
+        "title": "食物の栄養素を調べよう",
+        "description": "三大栄養素（炭水化物・タンパク質・脂質）の役割と多く含む食品をまとめよう。",
+        "steps": [
+          "三大栄養素の名前と役割を書く",
+          "各栄養素が多い食品を3つずつ書く",
+          "今日の食事の栄養バランスを考える"
+        ],
+        "tip": "ビタミン・ミネラルも合わせて五大栄養素を調べよう！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "自分だけの紙芝居を作ろう",
+        "description": "オリジナルのお話を考えて紙芝居（8枚以上）を作ろう。",
+        "steps": [
+          "ストーリーを考える",
+          "各場面の絵を描く",
+          "セリフと説明文を書く"
+        ],
+        "tip": "起承転結を意識したストーリーが読み手を引き込むよ！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "偉人の名言を集めよう",
+        "description": "尊敬する人物の名言を10個集めて自分の感想を書こう。",
+        "steps": [
+          "尊敬する人物を3〜5人えらぶ",
+          "各人物から2〜3の名言を集める",
+          "各名言に自分の感想を一文添える"
+        ],
+        "tip": "なぜその言葉が心に響くか考えると深まるよ！"
+      },
+      {
+        "emoji": "🎲",
+        "title": "確率を実験してみよう",
+        "description": "コインを50回投げて表・裏の出る確率を実際に調べてみよう。",
+        "steps": [
+          "コインを50回投げる",
+          "表と裏の回数を記録する",
+          "理論値（50%）と比べる"
+        ],
+        "tip": "回数を増やすほど理論値に近づくよ！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "バケットリストを作ろう",
+        "description": "「一生でやってみたいこと100」を考えてノートにまとめよう。",
+        "steps": [
+          "できることもできないことも自由に書く",
+          "大きいものから小さいものまで書く",
+          "100個書けるか挑戦する"
+        ],
+        "tip": "「宇宙旅行」「本を書く」など夢は大きく！"
+      },
+      {
+        "emoji": "🌿",
+        "title": "薬草・植物の効能を調べよう",
+        "description": "生姜・ミント・レモンなど体に良い植物の効能を3つ調べよう。",
+        "steps": [
+          "調べる植物を3つえらぶ",
+          "効能と使い方を調べる",
+          "ノートにまとめる"
+        ],
+        "tip": "お茶として飲める植物も調べてみよう！"
+      }
+    ],
+    "高": [
+      {
+        "emoji": "📰",
+        "title": "ミニ新聞を作ろう",
+        "description": "気になるニュースや学校の出来事を題材にA4一枚のミニ新聞を作ろう。",
+        "steps": [
+          "テーマをきめる",
+          "記事・見出し・写真（絵）を考える",
+          "レイアウトを考えて書く"
+        ],
+        "tip": "見出しは大きく・わかりやすく！読む人のことを想像して書こう。"
+      },
+      {
+        "emoji": "💡",
+        "title": "未来の発明品を考えよう",
+        "description": "「あったらいいな」と思う発明品を考えて名前・仕組み・使い方をまとめよう。",
+        "steps": [
+          "日常の不便なことを1つあげる",
+          "それを解決する発明品を考える",
+          "絵と説明文でノートにまとめる"
+        ],
+        "tip": "どんなアイデアでもOK！まずは自由に発想しよう！"
+      },
+      {
+        "emoji": "🔬",
+        "title": "身近な科学を深く調べよう",
+        "description": "「なぜ飛行機は飛べるの？」など身近な科学の疑問を1つ徹底的に調べよう。",
+        "steps": [
+          "気になる疑問を1つえらぶ",
+          "複数の資料で調べる",
+          "図解でわかりやすくまとめる"
+        ],
+        "tip": "大人でも説明できない身近な「なぜ？」を選ぼう！"
+      },
+      {
+        "emoji": "🌍",
+        "title": "地球環境問題をまとめよう",
+        "description": "プラスチック汚染・森林破壊・海面上昇の現状と対策を調べよう。",
+        "steps": [
+          "3つの環境問題をえらぶ",
+          "現状のデータを調べる",
+          "解決策を考えて書く"
+        ],
+        "tip": "日本の取り組みも調べよう！"
+      },
+      {
+        "emoji": "📊",
+        "title": "統計データを分析しよう",
+        "description": "人口・GDP・寿命など気になる統計データをグラフにして分析しよう。",
+        "steps": [
+          "調べる統計をえらぶ",
+          "データを5〜10個集める",
+          "グラフを作って分析する"
+        ],
+        "tip": "世界銀行や総務省のサイトにデータがあるよ！"
+      },
+      {
+        "emoji": "🎯",
+        "title": "論文の書き方を練習しよう",
+        "description": "テーマを決めて序論・本論・結論の構成で800字の小論文を書こう。",
+        "steps": [
+          "テーマをきめる",
+          "序論・本論・結論の構成をメモ",
+          "800字で書く"
+        ],
+        "tip": "主張→根拠→まとめの流れを意識しよう！"
+      },
+      {
+        "emoji": "🌟",
+        "title": "哲学的な問いを考えよう",
+        "description": "「幸福とは何か？」「正義とは何か？」などの問いに対して自分の考えを書こう。",
+        "steps": [
+          "哲学的な問いを1つえらぶ",
+          "自分の考えを書く",
+          "反対意見も考えて書く"
+        ],
+        "tip": "「正解がない問い」に向き合うことが哲学の出発点！"
+      },
+      {
+        "emoji": "💰",
+        "title": "お金と経済を調べよう",
+        "description": "インフレ・デフレ・GDP・円安・円高の意味をわかりやすくまとめよう。",
+        "steps": [
+          "5つの経済用語を調べる",
+          "意味と例を書く",
+          "日本の経済に当てはめて考える"
+        ],
+        "tip": "ニュースで聞いたことがある言葉から調べよう！"
+      },
+      {
+        "emoji": "🧠",
+        "title": "心理学を調べてみよう",
+        "description": "確証バイアス・同調圧力など心理学の面白い概念を3つ調べよう。",
+        "steps": [
+          "3つの心理学の概念をえらぶ",
+          "意味と具体例を書く",
+          "自分の生活で思い当たる場面を書く"
+        ],
+        "tip": "「なぜ人はこう行動するか」を考えると面白いよ！"
+      },
+      {
+        "emoji": "🔢",
+        "title": "暗号と数学を調べよう",
+        "description": "シーザー暗号・素数暗号など暗号の仕組みを調べて実際に作ってみよう。",
+        "steps": [
+          "暗号の種類を2つ調べる",
+          "仕組みを図解する",
+          "実際に暗号を作ってみる"
+        ],
+        "tip": "インターネットのSSL暗号化も素数を使っているよ！"
+      },
+      {
+        "emoji": "🌏",
+        "title": "異文化理解レポートを書こう",
+        "description": "宗教・慣習・食タブーなど文化の多様性について調べてまとめよう。",
+        "steps": [
+          "調べる国・文化をえらぶ",
+          "日本との違いを3つ書く",
+          "なぜ違いがあるか考察する"
+        ],
+        "tip": "違いを「おかしい」でなく「なぜ？」で考えよう！"
+      },
+      {
+        "emoji": "📚",
+        "title": "ビブリオバトル準備をしよう",
+        "description": "おすすめ本の紹介カードを作り2分スピーチの原稿を書こう。",
+        "steps": [
+          "紹介する本をえらぶ",
+          "あらすじ・見どころ・おすすめ理由を書く",
+          "2分で話せる原稿にする"
+        ],
+        "tip": "「読みたい！」と思ってもらえるようアピールしよう！"
+      },
+      {
+        "emoji": "🌱",
+        "title": "持続可能な社会を考えよう",
+        "description": "再生可能エネルギー・循環型経済など持続可能な社会の仕組みを調べよう。",
+        "steps": [
+          "3つのキーワードをえらぶ",
+          "それぞれの意味と事例を調べる",
+          "自分の考えをまとめる"
+        ],
+        "tip": "「100年後の地球」を想像しながら考えよう！"
+      },
+      {
+        "emoji": "🎭",
+        "title": "ディベート準備をしよう",
+        "description": "「制服は必要か」などのテーマで賛成・反対の論拠を各3つ準備しよう。",
+        "steps": [
+          "テーマをきめる",
+          "賛成の論拠を3つ書く",
+          "反対の論拠も3つ書く"
+        ],
+        "tip": "どちらの立場でも論じられることが本物の力！"
+      },
+      {
+        "emoji": "🔭",
+        "title": "将来の夢・目標を深く考えよう",
+        "description": "なりたい自分・やりたいこと・そのための計画を詳しくまとめよう。",
+        "steps": [
+          "10年後の自分をイメージする",
+          "そのために今できることを書く",
+          "来月・来年・3年後の目標を書く"
+        ],
+        "tip": "夢は具体的に書けば書くほど実現に近づくよ！"
+      }
+    ]
+  }
+};
+
+// ===== 教科・学年定義 =====
+const GRADES = ["1年生","2年生","3年生","4年生","5年生","6年生"];
+const SUBJECTS = [
+  { id:"kokugo",  label:"国語",     emoji:"📖" },
+  { id:"sansu",   label:"算数",     emoji:"🔢" },
+  { id:"rika",    label:"理科",     emoji:"🔬" },
+  { id:"shakai",  label:"社会",     emoji:"🌏" },
+  { id:"eigo",    label:"英語",     emoji:"🌟" },
+  { id:"zukotai", label:"図工・工作",emoji:"🎨" },
+  { id:"ongaku",  label:"音楽",     emoji:"🎵" },
+  { id:"nandemo", label:"なんでも！",emoji:"🎲" },
+];
+
+function gradeGroup(g) {
+  const n = parseInt(g);
+  if (n <= 2) return "低";
+  if (n <= 4) return "中";
+  return "高";
+}
+
+// ===== 状態 =====
+let selectedGrade = null;
+let selectedSubject = null;
+let lastIdx = -1;
+let currentNeta = null;
+
+// ===== 初期化 =====
+window.addEventListener('DOMContentLoaded', () => {
+  const gc = document.getElementById('grade-chips');
+  GRADES.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = g;
+    btn.onclick = () => selectGrade(g, btn);
+    gc.appendChild(btn);
+  });
+
+  const sg = document.getElementById('subject-grid');
+  SUBJECTS.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'subject-card';
+    btn.innerHTML = `<span class="emoji">${s.emoji}</span>${s.label}`;
+    btn.dataset.id = s.id;
+    btn.onclick = () => selectSubject(s, btn);
+    sg.appendChild(btn);
+  });
+
+  document.getElementById('generate-btn').onclick = generate;
+});
+
+function selectGrade(g, btn) {
+  selectedGrade = g;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateBtn();
+}
+
+function selectSubject(s, btn) {
+  selectedSubject = s;
+  document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateBtn();
+}
+
+function updateBtn() {
+  const btn = document.getElementById('generate-btn');
+  if (selectedGrade && selectedSubject) {
+    btn.classList.add('ready');
+    btn.disabled = false;
+  }
+}
+
+function generate() {
+  if (!selectedGrade || !selectedSubject) return;
+  const group = gradeGroup(selectedGrade);
+  const pool = DB[selectedSubject.id][group] || [];
+  if (!pool.length) return;
+
+  // ルーレット演出
+  const emojis = ['🎲','✨','🔮','🎯','💫','🌟','🎪','🎨'];
+  const overlay = document.getElementById('roulette-overlay');
+  const rouEmo  = document.getElementById('roulette-emoji');
+  overlay.classList.add('active');
+  let rouTimer = setInterval(() => {
+    rouEmo.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+  }, 100);
+
+  setTimeout(() => {
+    clearInterval(rouTimer);
+    overlay.classList.remove('active');
+
+    // ネタ決定
+    let idx;
+    do { idx = Math.floor(Math.random() * pool.length); }
+    while (pool.length > 1 && idx === lastIdx);
+    lastIdx = idx;
+    const neta = pool[idx];
+    currentNeta = neta;
+
+    // 難易度計算
+    const diff = calcDifficulty(neta, selectedSubject.id);
+    renderDifficulty(diff);
+
+    document.getElementById('r-emoji').textContent = neta.emoji;
+    document.getElementById('r-title').textContent = neta.title;
+    document.getElementById('r-desc').textContent = neta.description;
+
+    const stepsEl = document.getElementById('r-steps');
+    stepsEl.innerHTML = '';
+    neta.steps.forEach((s, i) => {
+      stepsEl.innerHTML += `
+        <div class="step">
+          <div class="step-num">${i+1}</div>
+          <div class="step-text">${s}</div>
+        </div>`;
+    });
+
+    document.getElementById('r-tip').textContent = '💡 コツ: ' + neta.tip;
+
+    // スタンプボタンリセット
+    const sBtn = document.getElementById('stamp-btn');
+    sBtn.classList.remove('stamped');
+    sBtn.innerHTML = '⭐ できた！スタンプをおす';
+    // お気に入りハートをリセット
+    updateFavBtn();
+
+    const area = document.getElementById('result-area');
+    area.classList.remove('visible');
+    area.style.display = 'none';
+    setTimeout(() => {
+      area.style.display = 'block';
+      requestAnimationFrame(() => area.classList.add('visible'));
+    }, 50);
+    setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }, 900);
+}
+
+
+// ===== ノートプレビュー =====
+const SUBJECT_NAMES = {
+  kokugo:'国語', sansu:'算数', rika:'理科', shakai:'社会',
+  eigo:'英語', zukotai:'図工・工作', ongaku:'音楽', nandemo:'自由'
+};
+
+// ネタのタイトル・教科から最適なスペース種別を決定
+function detectSpaceType(neta, subjectId) {
+  const t = (neta.title + ' ' + neta.description).replace(/[　 ]/g,'');
+
+  // グラフ・データ系
+  if (/グラフ|折れ線|棒グラフ|度数|データ|記録/.test(t)) return 'graph';
+  // 観察・スケッチ系
+  if (/観察|スケッチ|かんさつ|スケッチ|観察日記|観察する/.test(t)) return 'observe';
+  // 表・比較系
+  if (/比べ|くらべ|表にまとめ|まとめよう|ちがい|比較|分類/.test(t) && !/作文|日記|手紙/.test(t)) return 'table';
+  // インタビュー系
+  if (/インタビュー|聞いて|質問/.test(t)) return 'interview';
+  // 年表・タイムライン
+  if (/年表|歴史|時代|流れ|順番|タイムライン/.test(t)) return 'timeline';
+  // 図工・スケッチ
+  if (subjectId === 'zukotai') return 'sketch';
+  // 作文・日記・手紙・文章
+  if (/作文|日記|手紙|文章|書いてみよう|書こう|スピーチ|意見文|小説|詩|俳句/.test(t)) return 'writing';
+  // チェックリスト（やりかた系）
+  if (/れんしゅう|練習|ゲーム|問題|計算|挑戦|マスター/.test(t)) return 'checklist';
+  // デフォルト：汎用記録
+  return 'free';
+}
+
+function buildNoteLayout(neta, subjectId, grade) {
+  const sname = SUBJECT_NAMES[subjectId] || '';
+  const aim = neta.title;
+  const spaceType = detectSpaceType(neta, subjectId);
+  const summary = neta.tip.replace(/^💡 コツ: /, '');
+  return { sname, grade, aim, steps: neta.steps, spaceType, summary, subjectId };
+}
+
+function showNote() {
+  if (!currentNeta || !selectedSubject || !selectedGrade) return;
+  const layout = buildNoteLayout(currentNeta, selectedSubject.id, selectedGrade);
+  renderNote(layout);
+  document.getElementById('note-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNoteModal(e) {
+  if (e.target === document.getElementById('note-modal')) {
+    document.getElementById('note-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('note-modal');
+  const observer = new MutationObserver(() => {
+    if (!modal.classList.contains('open')) document.body.style.overflow = '';
+  });
+  observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+});
+
+// スペース種別ごとのHTMLを生成
+function renderSpaceBlock(spaceType, steps) {
+  switch(spaceType) {
+
+    case 'graph':
+      return `
+<div class="note-graph-box">
+  <div class="note-graph-title">📊 グラフ・データ記録</div>
+  <div class="note-graph-area"></div>
+  <div class="note-graph-hint">← よこじく（名前・時刻など）　たてじく（数）↑</div>
+</div>
+<div class="note-section-title">【気づいたこと】</div>
+${writeLines(2)}`;
+
+    case 'observe':
+      return `
+<div class="note-observe-box">
+  <div class="note-section-title">【かんさつ・スケッチ】</div>
+  <div class="note-observe-row">
+    <div class="note-observe-sketch">スケッチ<br>ここに</div>
+    <div class="note-observe-lines">
+      <div class="note-observe-line"></div>
+      <div class="note-observe-line"></div>
+      <div class="note-observe-line"></div>
+      <div style="font-size:10px;color:#b090d8;margin-top:2px">気づいたこと →</div>
+    </div>
+  </div>
+</div>`;
+
+    case 'table':
+      return `
+<div class="note-section-title">【表にまとめよう】</div>
+<table class="note-table-space">
+  <tr>
+    <th style="width:30%">名前・種類</th>
+    <th>調べたこと①</th>
+    <th>調べたこと②</th>
+  </tr>
+  <tr><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td></tr>
+</table>`;
+
+    case 'interview':
+      return `
+<div class="note-interview-box">
+  <div class="note-section-title">【インタビュー記録】</div>
+  ${steps.slice(0,1).map(s=>`<div class="note-interview-q">Q. ${escHtml(s)}</div><div class="note-interview-a"></div>`).join('')}
+  <div class="note-interview-q">Q. （自分で考えた質問）</div>
+  <div class="note-interview-a"></div>
+  <div class="note-interview-q">A. 答え・気づき</div>
+  <div class="note-interview-a"></div>
+</div>`;
+
+    case 'timeline':
+      return `
+<div class="note-section-title">【年表・流れ】</div>
+<div class="note-timeline">
+  <div class="note-tl-item">時代・年：<div class="note-tl-dot-line"></div></div>
+  <div class="note-tl-item">できごと：<div class="note-tl-dot-line"></div></div>
+  <div class="note-tl-item">時代・年：<div class="note-tl-dot-line"></div></div>
+  <div class="note-tl-item">できごと：<div class="note-tl-dot-line"></div></div>
+</div>`;
+
+    case 'sketch':
+      return `
+<div class="note-sketch-box">
+  <div class="note-sketch-icon">🖌️</div>
+  <div class="note-sketch-hint">スケッチ・デザインをここに書こう</div>
+</div>
+<div class="note-section-title">【工夫したこと・気づき】</div>
+${writeLines(2)}`;
+
+    case 'writing':
+      return `
+<div class="note-section-title">【書いてみよう】</div>
+<div class="note-writing-lines">
+  ${Array(5).fill('<div class="note-writing-line"></div>').join('')}
+</div>`;
+
+    case 'checklist':
+      return `
+<div class="note-section-title">【れんしゅう記録】</div>
+<div class="note-checklist">
+  ${steps.map(s=>`
+  <div class="note-check-item">
+    <div class="note-checkbox"></div>
+    <span>${escHtml(s)}</span>
+  </div>`).join('')}
+</div>
+<div class="note-section-title" style="margin-top:4px">【結果・点数・気づき】</div>
+${writeLines(2)}`;
+
+    default: // free
+      return `
+<div class="note-section-title">【しらべたこと・きろく】</div>
+<div style="border:2px dashed #c8d8f0;border-radius:6px;min-height:60px;margin:4px 0;
+  display:flex;align-items:center;justify-content:center;
+  color:#aac0e0;font-size:12px;background:rgba(200,216,240,0.08);">
+  ここに書こう（文・絵・表など）
+</div>
+<div class="note-section-title">【わかったこと】</div>
+${writeLines(2)}`;
+  }
+}
+
+function writeLines(n) {
+  return Array(n).fill('<div class="note-body-line" style="border-bottom:1px solid #d0e4f8;min-height:28px"></div>').join('');
+}
+
+function renderNote(layout) {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+
+  // スペース種別ラベル
+  const spaceLabels = {
+    graph:'グラフ', observe:'かんさつ', table:'表', interview:'インタビュー',
+    timeline:'年表', sketch:'スケッチ', writing:'作文', checklist:'チェック', free:'きろく'
+  };
+
+  let h = '';
+  h += `<div class="note-date">${dateStr}</div>`;
+  h += `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+    <span class="note-subject-label">${layout.sname}　${layout.grade}</span>
+    <span style="font-size:10px;color:#888">記録スタイル：${spaceLabels[layout.spaceType] || 'きろく'}</span>
+  </div>`;
+
+  // めあて
+  h += `<div class="note-aim-box">
+    <div class="note-aim-label">★ め あ て</div>
+    <div class="note-aim-text">${escHtml(layout.aim)}</div>
+  </div>`;
+
+  // やりかた（checklist以外）
+  if (layout.spaceType !== 'checklist') {
+    h += `<div class="note-section-title">【やりかた】</div>`;
+    layout.steps.forEach((s,i) => {
+      h += `<div class="note-body-line"><span class="bullet">▶</span>${escHtml(`${i+1}. ${s}`)}</div>`;
+    });
+    h += `<div class="note-blank-line"></div>`;
+  }
+
+  // 記録スペース（種別ごと）
+  h += renderSpaceBlock(layout.spaceType, layout.steps);
+
+  // まとめ
+  h += `<div class="note-summary-box" style="margin-top:8px">
+    <div class="note-summary-label">★ ま と め</div>
+    <div class="note-summary-text">${escHtml(layout.summary)}</div>
+  </div>`;
+  h += `<div class="note-page-num">- 1 -</div>`;
+
+  document.getElementById('note-content').innerHTML = h;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function resetAll() {
+  selectedGrade = null;
+  selectedSubject = null;
+  lastIdx = -1;
+  currentNeta = null;
+  document.querySelectorAll('.chip, .subject-card').forEach(c => c.classList.remove('selected'));
+  const btn = document.getElementById('generate-btn');
+  btn.classList.remove('ready');
+  btn.disabled = true;
+  const area = document.getElementById('result-area');
+  area.classList.remove('visible');
+  setTimeout(() => { area.style.display = 'none'; }, 300);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===========================
+// ★ 難易度表示
+// ===========================
+function calcDifficulty(neta, subjectId) {
+  const t = neta.title + ' ' + neta.description;
+  // 難易度3（むずかしい）
+  if (/論文|ディベート|批評|分析|考察|エッセイ|小説|哲学|統計|暗号|小論文/.test(t)) return 3;
+  // 難易度1（かんたん）
+  if (/れんしゅう|練習|おぼえ|覚え|書いてみよう|かいてみよう|えらんで|さがそう|あつめよう|まとめよう/.test(t)
+    && !/調べ|分析|比較|考察/.test(t)) return 1;
+  return 2;
+}
+
+const DIFF_INFO = {
+  1: { label:'かんたん', stars:'★☆☆', cls:'diff-1', time:'15〜30分' },
+  2: { label:'ふつう',   stars:'★★☆', cls:'diff-2', time:'30〜45分' },
+  3: { label:'むずかしい',stars:'★★★', cls:'diff-3', time:'45〜60分' },
+};
+
+function renderDifficulty(level) {
+  const d = DIFF_INFO[level] || DIFF_INFO[2];
+  document.getElementById('r-difficulty').innerHTML = `
+    <span class="diff-badge ${d.cls}">${d.stars} ${d.label}</span>
+    <span class="time-badge">⏱ ${d.time}</span>`;
+}
+
+// ===========================
+// ⭐ お気に入り保存
+// ===========================
+function getFavs() {
+  try { return JSON.parse(localStorage.getItem('jigaku_favs') || '[]'); }
+  catch(e) { return []; }
+}
+function saveFavs(favs) {
+  try { localStorage.setItem('jigaku_favs', JSON.stringify(favs)); } catch(e) {}
+}
+function makeFavKey(neta) {
+  return (neta.title || '').slice(0, 30);
+}
+function isFaved(neta) {
+  const favs = getFavs();
+  const key = makeFavKey(neta);
+  return favs.some(f => f.key === key);
+}
+function toggleFav() {
+  if (!currentNeta) return;
+  let favs = getFavs();
+  const key = makeFavKey(currentNeta);
+  const idx = favs.findIndex(f => f.key === key);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.unshift({
+      key,
+      title: currentNeta.title,
+      emoji: currentNeta.emoji,
+      subjectLabel: selectedSubject ? selectedSubject.label : '',
+      grade: selectedGrade || '',
+      subjectId: selectedSubject ? selectedSubject.id : '',
+      gradeGroup: selectedGrade ? gradeGroup(selectedGrade) : '',
+      netaIdx: lastIdx,
+    });
+    if (favs.length > 20) favs = favs.slice(0, 20);
+  }
+  saveFavs(favs);
+  updateFavBtn();
+  renderFavList();
+}
+function updateFavBtn() {
+  const btn = document.getElementById('fav-btn');
+  if (!btn) return;
+  btn.textContent = (currentNeta && isFaved(currentNeta)) ? '❤️' : '🤍';
+}
+function renderFavList() {
+  const favs = getFavs();
+  const sec = document.getElementById('fav-section');
+  const list = document.getElementById('fav-list');
+  const countLabel = document.getElementById('fav-count-label');
+  if (!favs.length) {
+    sec.classList.remove('has-items');
+    return;
+  }
+  sec.classList.add('has-items');
+  countLabel.textContent = `(${favs.length}件)`;
+  list.innerHTML = favs.map((f, i) => `
+    <div class="fav-item" onclick="loadFav(${i})">
+      <span class="fav-item-emoji">${f.emoji}</span>
+      <div class="fav-item-body">
+        <div class="fav-item-title">${escHtml(f.title)}</div>
+        <div class="fav-item-sub">${f.subjectLabel} ・ ${f.grade}</div>
+      </div>
+      <button class="fav-item-del" onclick="event.stopPropagation();deleteFav(${i})" title="削除">✕</button>
+    </div>`).join('');
+}
+function loadFav(i) {
+  const favs = getFavs();
+  const f = favs[i];
+  if (!f) return;
+  // 教科・学年を復元してネタを表示
+  const pool = (DB[f.subjectId] || {})[f.gradeGroup] || [];
+  const neta = pool[f.netaIdx] || pool.find(n => n.title === f.title);
+  if (!neta) return;
+
+  // 学年・教科を選択状態に
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('selected', c.textContent === f.grade);
+  });
+  document.querySelectorAll('.subject-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.id === f.subjectId);
+  });
+  selectedGrade = f.grade;
+  const subj = SUBJECTS.find(s => s.id === f.subjectId);
+  selectedSubject = subj || null;
+  const genBtn = document.getElementById('generate-btn');
+  genBtn.classList.add('ready');
+  genBtn.disabled = false;
+  lastIdx = f.netaIdx;
+  currentNeta = neta;
+
+  const diff = calcDifficulty(neta, f.subjectId);
+  renderDifficulty(diff);
+  document.getElementById('r-emoji').textContent = neta.emoji;
+  document.getElementById('r-title').textContent = neta.title;
+  document.getElementById('r-desc').textContent = neta.description;
+  const stepsEl = document.getElementById('r-steps');
+  stepsEl.innerHTML = '';
+  neta.steps.forEach((s, idx2) => {
+    stepsEl.innerHTML += `<div class="step"><div class="step-num">${idx2+1}</div><div class="step-text">${s}</div></div>`;
+  });
+  document.getElementById('r-tip').textContent = '💡 コツ: ' + neta.tip;
+  const sBtn = document.getElementById('stamp-btn');
+  sBtn.classList.remove('stamped');
+  sBtn.innerHTML = '⭐ できた！スタンプをおす';
+  updateFavBtn();
+
+  const area = document.getElementById('result-area');
+  area.classList.remove('visible');
+  area.style.display = 'none';
+  setTimeout(() => {
+    area.style.display = 'block';
+    requestAnimationFrame(() => area.classList.add('visible'));
+  }, 50);
+  setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+function deleteFav(i) {
+  const favs = getFavs();
+  favs.splice(i, 1);
+  saveFavs(favs);
+  renderFavList();
+  if (currentNeta) updateFavBtn();
+}
+
+// ===========================
+// スタンプ機能
+// ===========================
+const STAMPS = ['⭐','🌟','✨','🎉','🏅','🎊','💯','👑','🦄','🌈'];
+let stampCount = 0;
+
+function pressStamp() {
+  const btn = document.getElementById('stamp-btn');
+  if (btn.classList.contains('stamped')) return;
+  stampCount++;
+  const stamp = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+  // オーバーレイ表示
+  const overlay = document.getElementById('stamp-overlay');
+  const img = document.getElementById('stamp-img');
+  img.textContent = stamp;
+  img.className = 'stamp-img';
+  overlay.classList.add('active');
+  // 1秒後にフェードアウト
+  setTimeout(() => {
+    img.classList.add('stamp-out');
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      img.classList.remove('stamp-out');
+    }, 400);
+  }, 900);
+  // ボタンを「できた！」状態に
+  btn.classList.add('stamped');
+  btn.innerHTML = `${stamp} やったね！できた！ <span class="stamp-count-badge">${stampCount}</span>`;
+}
+
+// ===========================
+// 初期化：お気に入りリストを表示
+// ===========================
+document.addEventListener('DOMContentLoaded', () => {
+  renderFavList();
+});
+</script>
+</body>
+</html>
